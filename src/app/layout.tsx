@@ -1,5 +1,19 @@
 import type { Metadata } from "next";
+import { DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-dm-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "SupplyLink — 批量询盘系统",
@@ -8,8 +22,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN" className="h-full">
-      <body className="h-full">{children}</body>
+    <html lang="zh-CN" className={`${dmSans.variable} ${dmMono.variable} h-full`}>
+      <body className="h-full" style={{ fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
+        {children}
+      </body>
     </html>
   );
 }
