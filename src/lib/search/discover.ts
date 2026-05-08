@@ -1,0 +1,139 @@
+export interface SupplierCandidate {
+  id: string;
+  name: string;
+  website?: string;
+  domain?: string;
+  description?: string;
+  tags: string[];
+  email?: string;
+  source: "web" | "1688" | "alibaba";
+}
+
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace("www.", "");
+  } catch {
+    return url;
+  }
+}
+
+function extractEmails(text: string): string | undefined {
+  const m = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+  return m?.[0];
+}
+
+function extractTags(name: string, desc: string): string[] {
+  const tags: string[] = [];
+  const text = name + " " + desc;
+  if (/OEM|代工/i.test(text)) tags.push("OEM");
+  if (/ODM/i.test(text)) tags.push("ODM");
+  if (/出口|外贸|export/i.test(text)) tags.push("出口");
+  if (/工厂|factory/i.test(text)) tags.push("工厂");
+  if (/批发|wholesale/i.test(text)) tags.push("批发");
+  if (/认证|certified|CE|RoHS/i.test(text)) tags.push("认证");
+  return tags.slice(0, 4);
+}
+
+// DuckDuckGo HTML search — no API key required
+async function searchDDG(keyword: string, region: string): Promise<SupplierCandidate[]> {
+  const suffix = region === "CN" ? "工厂 批发 厂家" : "factory manufacturer wholesale";
+  const query = `${keyword} ${suffix}`;
+
+  const res = await fetch(
+    `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=${region === "CN" ? "cn-zh" : "us-en"}`,
+    {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "text/html",
+        "Accept-Language": region === "CN" ? "zh-CN,zh;q=0.9" : "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(8000),
+    }
+  );
+
+  const html = await res.text();
+  const candidates: SupplierCandidate[] = [];
+
+  // Parse result blocks with regex
+  const resultBlocks = html.match(/<div class="result__body"[\s\S]*?<\/div>\s*<\/div>/g) ?? [];
+
+  for (const block of resultBlocks.slice(0, 12)) {
+    // Extract title
+    const titleM = block.match(/class="result__a"[^>]*>([^<]+)</);
+    const name = titleM?.[1]?.trim() ?? "";
+
+    // Extract URL
+    const urlM = block.match(/href="([^"]+)"/);
+    const rawUrl = urlM?.[1] ?? "";
+    const url = rawUrl.startsWith("//") ? "https:" + rawUrl : rawUrl;
+
+    // Extract snippet
+    const snippetM = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+    const description = snippetM?.[1]?.replace(/<[^>]+>/g, "").trim() ?? "";
+
+    if (!name || !url || url.includes("duckduckgo.com")) continue;
+
+    const domain = extractDomain(url);
+    const email = extractEmails(description);
+    const tags = extractTags(name, description);
+
+    // Classify source
+    let source: SupplierCandidate["source"] = "web";
+    if (domain.includes("1688.com")) source = "1688";
+    else if (domain.includes("alibaba.com")) source = "alibaba";
+
+    candidates.push({
+      id: Buffer.from(url).toString("base64").slice(0, 12),
+      name: name.length > 40 ? name.slice(0, 40) + "…" : name,
+      website: url,
+      domain,
+      description: description.length > 120 ? description.slice(0, 120) + "…" : description,
+      tags,
+      email,
+      source,
+    });
+  }
+
+  return candidates;
+}
+
+// SerpAPI (requires SERP_API_KEY in .env)
+async function searchSerpAPI(keyword: string, region: string): Promise<SupplierCandidate[]> {
+  const apiKey = process.env.SERP_API_KEY;
+  if (!apiKey) return [];
+
+  const query = `${keyword} ${region === "CN" ? "工厂 厂家 批发" : "factory manufacturer wholesale"}`;
+  const res = await fetch(
+    `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${apiKey}&num=12`,
+    { signal: AbortSignal.timeout(8000) }
+  );
+  const data = await res.json();
+  const results = data.organic_results ?? [];
+
+  return results.map((r: { title: string; link: string; snippet?: string }) => {
+    const description = r.snippet ?? "";
+    return {
+      id: Buffer.from(r.link).toString("base64").slice(0, 12),
+      name: r.title?.length > 40 ? r.title.slice(0, 40) + "…" : r.title,
+      website: r.link,
+      domain: extractDomain(r.link),
+      description: description.length > 120 ? description.slice(0, 120) + "…" : description,
+      tags: extractTags(r.title, description),
+      email: extractEmails(description),
+      source: "web" as const,
+    };
+  });
+}
+
+export async function discoverSuppliers(keyword: string, region = "CN"): Promise<SupplierCandidate[]> {
+  try {
+    // Prefer SerpAPI if key configured, else DuckDuckGo
+    if (process.env.SERP_API_KEY) {
+      return await searchSerpAPI(keyword, region);
+    }
+    return await searchDDG(keyword, region);
+  } catch (err) {
+    console.error("Discover search failed:", err);
+    return [];
+  }
+}

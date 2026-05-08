@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, FileText, Send, MessageSquare, Settings, Zap,
+  LayoutDashboard, Users, FileText, Send, MessageSquare, Settings, Zap, Compass,
 } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard",  icon: LayoutDashboard, label: "概览" },
   { href: "/suppliers",  icon: Users,           label: "供应商库" },
+  { href: "/discover",   icon: Compass,         label: "供应商发现" },
   { href: "/templates",  icon: FileText,        label: "询盘模板" },
   { href: "/inquiries",  icon: Send,            label: "批量询盘" },
   { href: "/responses",  icon: MessageSquare,   label: "回复报价" },
-  { href: "/settings",  icon: Settings,        label: "设置" },
+  { href: "/settings",   icon: Settings,        label: "设置" },
 ];
 
 export function Sidebar() {
