@@ -1,101 +1,118 @@
-import { Users, Send, MessageSquare, TrendingUp, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Users, Send, MessageSquare, Clock, ArrowUpRight, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 const stats = [
-  { label: "供应商总数", value: "0", icon: Users, color: "#2563eb" },
-  { label: "本月询盘", value: "0", icon: Send, color: "#6366f1" },
-  { label: "待跟进", value: "0", icon: Clock, color: "#f59e0b" },
-  { label: "已回复", value: "0", icon: MessageSquare, color: "#22c55e" },
+  { label: "供应商总数",  value: "0", sub: "本月新增 0",   icon: Users,          color: "#3b82f6", bg: "rgba(59,130,246,0.1)"  },
+  { label: "询盘已发送",  value: "0", sub: "本月发送 0 条", icon: Send,           color: "#a371f7", bg: "rgba(163,113,247,0.1)" },
+  { label: "待跟进回复",  value: "0", sub: "较上周 —",     icon: Clock,          color: "#d29922", bg: "rgba(210,153,34,0.1)"  },
+  { label: "已收到回复",  value: "0", sub: "回复率 —",     icon: MessageSquare,  color: "#3fb950", bg: "rgba(63,185,80,0.1)"   },
 ];
 
-const recentActivity = [
-  { type: "inquiry", text: "暂无询盘记录", time: "", status: "" },
+const quickActions = [
+  { href: "/suppliers", label: "添加供应商", desc: "录入厂商联系信息", icon: Users,  color: "#3b82f6", primary: false },
+  { href: "/templates", label: "新建模板",   desc: "设计询盘消息模板", icon: Send,   color: "#a371f7", primary: false },
+  { href: "/inquiries", label: "发起询盘",   desc: "一键多渠道批量发送", icon: Send, color: "#2563eb", primary: true  },
 ];
 
 export default function DashboardPage() {
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
-          概览
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-          供应链询盘管理中心
-        </p>
+    <div style={{ padding: "32px 36px", maxWidth: 1200 }}>
+
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>工作台</h1>
+        <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginTop: 4 }}>供应链询盘管理中心</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        {stats.map(({ label, value, icon: Icon, color }) => (
-          <div
-            key={label}
-            className="rounded-xl p-5"
-            style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{label}</span>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: `${color}20` }}>
-                <Icon size={16} style={{ color }} />
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
+        {stats.map(({ label, value, sub, icon: Icon, color, bg }) => (
+          <div key={label} style={{
+            background: "var(--bg-surface)", border: "1px solid var(--border-subtle)",
+            borderRadius: 12, padding: "18px 20px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-secondary)", fontWeight: 500 }}>{label}</span>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon size={15} color={color} strokeWidth={2} />
               </div>
             </div>
-            <div className="text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              {value}
-            </div>
+            <div style={{ fontSize: 30, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.03em", lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <a href="/suppliers"
-          className="rounded-xl p-5 flex items-center gap-4 cursor-pointer transition-colors hover:opacity-80"
-          style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ background: "var(--accent)" }}>
-            <Users size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>添加供应商</div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>录入厂商联系方式</div>
-          </div>
-        </a>
-        <a href="/templates"
-          className="rounded-xl p-5 flex items-center gap-4 cursor-pointer transition-colors hover:opacity-80"
-          style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ background: "#6366f1" }}>
-            <TrendingUp size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>创建模板</div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>设计询盘消息模板</div>
-          </div>
-        </a>
-        <a href="/inquiries"
-          className="rounded-xl p-5 flex items-center gap-4 cursor-pointer transition-colors hover:opacity-80"
-          style={{ background: "var(--accent)", border: "1px solid var(--accent)" }}>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/20">
-            <Send size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="text-sm font-medium text-white">批量发询盘</div>
-            <div className="text-xs mt-0.5 text-white/70">一键多渠道并发发送</div>
-          </div>
-        </a>
-      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 290px", gap: 14 }}>
 
-      {/* Recent */}
-      <div className="rounded-xl" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-        <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-          <h2 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>最近活动</h2>
+        {/* Quick actions */}
+        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border-subtle)" }}>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-primary)" }}>快捷操作</span>
+          </div>
+          <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+            {quickActions.map(({ href, label, desc, icon: Icon, color, primary }) => (
+              <Link key={href} href={href} style={{
+                display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+                borderRadius: 10, textDecoration: "none",
+                background: primary ? "var(--accent)" : "var(--bg-elevated)",
+                border: `1px solid ${primary ? "transparent" : "var(--border-subtle)"}`,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                  background: primary ? "rgba(255,255,255,0.15)" : bg(color),
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Icon size={16} color={primary ? "white" : color} strokeWidth={2} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 500, color: primary ? "white" : "var(--text-primary)" }}>{label}</div>
+                  <div style={{ fontSize: 12, marginTop: 2, color: primary ? "rgba(255,255,255,0.6)" : "var(--text-muted)" }}>{desc}</div>
+                </div>
+                <ChevronRight size={14} color={primary ? "rgba(255,255,255,0.5)" : "var(--text-muted)"} />
+              </Link>
+            ))}
+          </div>
         </div>
-        <div className="px-6 py-10 text-center">
-          <CheckCircle2 size={32} className="mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>暂无活动记录</p>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>开始添加供应商并发送第一条询盘</p>
+
+        {/* Checklist */}
+        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border-subtle)" }}>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-primary)" }}>起步指引</span>
+          </div>
+          <div style={{ padding: "8px 12px" }}>
+            {[
+              { step: "1", label: "添加供应商", href: "/suppliers" },
+              { step: "2", label: "创建询盘模板", href: "/templates" },
+              { step: "3", label: "发起批量询盘", href: "/inquiries" },
+              { step: "4", label: "录入回复报价", href: "/responses" },
+            ].map(({ step, label, href }) => (
+              <Link key={step} href={href} style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "10px 8px", borderRadius: 8, textDecoration: "none",
+                color: "var(--text-secondary)", fontSize: 13,
+              }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: 99, flexShrink: 0,
+                  border: "1.5px solid var(--border)", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 600, color: "var(--text-muted)",
+                }}>{step}</div>
+                {label}
+                <ArrowUpRight size={13} style={{ marginLeft: "auto" }} color="var(--text-muted)" />
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function bg(color: string) {
+  const map: Record<string, string> = {
+    "#3b82f6": "rgba(59,130,246,0.1)",
+    "#a371f7": "rgba(163,113,247,0.1)",
+    "#2563eb": "rgba(37,99,235,0.1)",
+  };
+  return map[color] ?? "var(--bg-elevated)";
 }

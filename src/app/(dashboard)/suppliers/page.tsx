@@ -1,12 +1,25 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Trash2, Pencil, Users } from "lucide-react";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { Plus, Search, Trash2, Pencil, Users, SlidersHorizontal } from "lucide-react";
 import { SupplierDrawer } from "@/components/suppliers/SupplierDrawer";
+
+const CHANNEL_STYLE: Record<string, { bg: string; color: string; label: string }> = {
+  EMAIL:    { bg: "rgba(59,130,246,0.12)",  color: "#60a5fa", label: "邮件"      },
+  WHATSAPP: { bg: "rgba(63,185,80,0.12)",   color: "#4ade80", label: "WhatsApp" },
+  ALI1688:  { bg: "rgba(210,153,34,0.12)",  color: "#fbbf24", label: "1688"     },
+  FORM:     { bg: "rgba(163,113,247,0.12)", color: "#c4b5fd", label: "表单"     },
+};
+
+const AVATAR_COLORS = [
+  ["#1e3a5f","#3b82f6"],["#1e3a2f","#4ade80"],["#3a1e3a","#c084fc"],
+  ["#3a2a1e","#fb923c"],["#1e3a3a","#22d3ee"],["#3a1e2a","#f472b6"],
+];
+
+function getAvatar(name: string) {
+  const i = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return { bg: AVATAR_COLORS[i][0], color: AVATAR_COLORS[i][1], char: name.charAt(0).toUpperCase() };
+}
 
 interface Channel { id: string; type: string; value: string; primary: boolean }
 interface Supplier {
@@ -22,15 +35,12 @@ export default function SuppliersPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hoverId, setHoverId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const res = await fetch("/api/suppliers");
-      setSuppliers(await res.json());
-    } finally {
-      setLoading(false);
-    }
+    try { setSuppliers(await (await fetch("/api/suppliers")).json()); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -40,8 +50,7 @@ export default function SuppliersPage() {
   );
 
   const toggleSelect = (id: string) =>
-    setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-
+    setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleAll = () =>
     setSelected(selected.size === filtered.length ? new Set() : new Set(filtered.map((s) => s.id)));
 
@@ -52,102 +61,186 @@ export default function SuppliersPage() {
     load();
   };
 
-  const openEdit = (s: Supplier) => { setEditing(s); setDrawerOpen(true); };
-  const openAdd = () => { setEditing(null); setDrawerOpen(true); };
-
   return (
-    <div className="p-8">
-      <PageHeader
-        title="供应商库"
-        description={`共 ${suppliers.length} 家供应商`}
-        action={
-          <Button icon={<Plus size={14} />} onClick={openAdd}>添加供应商</Button>
-        }
-      />
+    <div style={{ padding: "32px 36px" }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>供应商库</h1>
+          <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginTop: 4 }}>
+            共 {suppliers.length} 家供应商
+          </p>
+        </div>
+        <button onClick={() => { setEditing(null); setDrawerOpen(true); }} style={{
+          display: "flex", alignItems: "center", gap: 7,
+          height: 36, padding: "0 16px", borderRadius: 8,
+          background: "var(--accent)", border: "none",
+          color: "white", fontSize: 13.5, fontWeight: 500,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>
+          <Plus size={15} strokeWidth={2.5} />
+          添加供应商
+        </button>
+      </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-          <input
-            value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索供应商名称、品类..."
-            className="h-9 pl-9 pr-3 rounded-lg text-sm w-full outline-none"
-            style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
+          <Search size={14} color="var(--text-muted)" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="搜索供应商、品类、国家..."
+            style={{
+              width: "100%", height: 36, paddingLeft: 34, paddingRight: 12,
+              borderRadius: 8, outline: "none", fontSize: 13.5,
+              background: "var(--bg-surface)", border: "1px solid var(--border)",
+              color: "var(--text-primary)", fontFamily: "inherit",
+            }}
           />
         </div>
+        <button style={{
+          height: 36, padding: "0 14px", borderRadius: 8, cursor: "pointer",
+          background: "var(--bg-surface)", border: "1px solid var(--border)",
+          color: "var(--text-secondary)", fontSize: 13.5, fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 7,
+        }}>
+          <SlidersHorizontal size={14} />筛选
+        </button>
         {selected.size > 0 && (
-          <Button variant="danger" size="sm" icon={<Trash2 size={13} />} onClick={deleteSelected}>
-            删除 {selected.size} 项
-          </Button>
+          <button onClick={deleteSelected} style={{
+            height: 36, padding: "0 14px", borderRadius: 8, cursor: "pointer",
+            background: "rgba(248,81,73,0.1)", border: "1px solid rgba(248,81,73,0.3)",
+            color: "#f85149", fontSize: 13.5, fontFamily: "inherit",
+            display: "flex", alignItems: "center", gap: 7,
+          }}>
+            <Trash2 size={14} />删除 {selected.size} 项
+          </button>
         )}
       </div>
 
       {/* Table */}
-      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-        <table className="w-full text-sm">
+      <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "var(--bg-surface)", borderBottom: "1px solid var(--border)" }}>
-              <th className="px-4 py-3 w-10">
-                <input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length}
-                  onChange={toggleAll} className="cursor-pointer" />
+            <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+              <th style={{ width: 44, padding: "10px 16px" }}>
+                <input type="checkbox"
+                  checked={filtered.length > 0 && selected.size === filtered.length}
+                  onChange={toggleAll} style={{ cursor: "pointer", accentColor: "var(--accent)" }} />
               </th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: "var(--text-secondary)" }}>供应商</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: "var(--text-secondary)" }}>品类</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: "var(--text-secondary)" }}>渠道</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: "var(--text-secondary)" }}>国家</th>
-              <th className="px-4 py-3 w-20" />
+              {["供应商", "品类 / 国家", "联系渠道", "操作"].map((h, i) => (
+                <th key={h} style={{
+                  padding: "10px 16px", textAlign: "left",
+                  fontSize: 12, fontWeight: 500, color: "var(--text-muted)",
+                  letterSpacing: "0.02em", textTransform: "uppercase",
+                  paddingRight: i === 3 ? 20 : 16,
+                }}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="text-center py-12" style={{ color: "var(--text-muted)" }}>加载中...</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: "center", padding: 60, color: "var(--text-muted)", fontSize: 13 }}>加载中...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={6}>
-                <EmptyState icon={Users} title="暂无供应商" description="点击右上角添加第一个供应商" />
+              <tr><td colSpan={5}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "60px 20px", gap: 10 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Users size={20} color="var(--text-muted)" />
+                  </div>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>暂无供应商</p>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>点击右上角「添加供应商」开始</p>
+                </div>
               </td></tr>
-            ) : filtered.map((s) => (
-              <tr key={s.id} className="group transition-colors"
-                style={{ borderBottom: "1px solid var(--border)", background: selected.has(s.id) ? "var(--bg-elevated)" : undefined }}>
-                <td className="px-4 py-3">
-                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)} className="cursor-pointer" />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="font-medium" style={{ color: "var(--text-primary)" }}>{s.name}</div>
-                  {s.company && <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{s.company}</div>}
-                </td>
-                <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{s.category || "—"}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    {s.channels.map((ch) => <Badge key={ch.id} value={ch.type} />)}
-                    {s.channels.length === 0 && <span style={{ color: "var(--text-muted)" }}>—</span>}
-                  </div>
-                </td>
-                <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{s.country || "—"}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openEdit(s)} className="w-7 h-7 flex items-center justify-center rounded cursor-pointer hover:opacity-70"
-                      style={{ color: "var(--text-secondary)" }}>
-                      <Pencil size={13} />
-                    </button>
-                    <button onClick={async () => { if (confirm("确认删除？")) { await fetch(`/api/suppliers/${s.id}`, { method: "DELETE" }); load(); } }}
-                      className="w-7 h-7 flex items-center justify-center rounded cursor-pointer hover:opacity-70"
-                      style={{ color: "#ef4444" }}>
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            ) : filtered.map((s) => {
+              const av = getAvatar(s.name);
+              const isHover = hoverId === s.id;
+              return (
+                <tr key={s.id}
+                  onMouseEnter={() => setHoverId(s.id)}
+                  onMouseLeave={() => setHoverId(null)}
+                  style={{
+                    borderBottom: "1px solid var(--border-subtle)",
+                    background: selected.has(s.id) ? "rgba(37,99,235,0.06)" : isHover ? "var(--bg-elevated)" : "transparent",
+                    transition: "background 0.1s",
+                  }}>
+                  <td style={{ padding: "12px 16px", width: 44 }}>
+                    <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)}
+                      style={{ cursor: "pointer", accentColor: "var(--accent)" }} />
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                        background: av.bg, display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 13, fontWeight: 700, color: av.color,
+                      }}>{av.char}</div>
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)" }}>{s.name}</div>
+                        {s.company && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{s.company}</div>}
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{s.category || "—"}</div>
+                    {s.country && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{s.country}</div>}
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      {s.channels.length === 0 ? (
+                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>未配置</span>
+                      ) : s.channels.map((ch) => {
+                        const style = CHANNEL_STYLE[ch.type] ?? { bg: "var(--bg-elevated)", color: "var(--text-muted)", label: ch.type };
+                        return (
+                          <span key={ch.id} style={{
+                            display: "inline-flex", alignItems: "center",
+                            padding: "2px 9px", borderRadius: 99,
+                            fontSize: 11.5, fontWeight: 500,
+                            background: style.bg, color: style.color,
+                          }}>{style.label}</span>
+                        );
+                      })}
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px 20px 12px 16px" }}>
+                    <div style={{ display: "flex", gap: 4, opacity: isHover ? 1 : 0, transition: "opacity 0.15s" }}>
+                      <button onClick={() => { setEditing(s); setDrawerOpen(true); }} style={{
+                        width: 30, height: 30, borderRadius: 7, border: "1px solid var(--border)",
+                        background: "var(--bg-elevated)", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "var(--text-secondary)",
+                      }}><Pencil size={13} /></button>
+                      <button onClick={async () => {
+                        if (!confirm("确认删除？")) return;
+                        await fetch(`/api/suppliers/${s.id}`, { method: "DELETE" });
+                        load();
+                      }} style={{
+                        width: 30, height: 30, borderRadius: 7,
+                        border: "1px solid rgba(248,81,73,0.25)",
+                        background: "rgba(248,81,73,0.08)", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#f85149",
+                      }}><Trash2 size={13} /></button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {filtered.length > 0 && (
+          <div style={{ padding: "10px 20px", borderTop: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              {selected.size > 0 ? `已选 ${selected.size} / ${filtered.length}` : `共 ${filtered.length} 条`}
+            </span>
+          </div>
+        )}
       </div>
 
       <SupplierDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onSaved={load}
-        initial={editing ? { ...editing, id: editing.id } : undefined}
+        initial={editing ? { ...editing } : undefined}
       />
     </div>
   );

@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import { clsx } from "clsx";
 
 interface DrawerProps {
   open: boolean;
@@ -14,37 +13,35 @@ interface DrawerProps {
 
 export function Drawer({ open, onClose, title, children, width = "480px" }: DrawerProps) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
   }, [onClose]);
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className={clsx("fixed inset-0 z-40 transition-opacity duration-200", open ? "opacity-100" : "opacity-0 pointer-events-none")}
-        style={{ background: "rgba(0,0,0,0.5)" }}
-        onClick={onClose}
-      />
-      {/* Panel */}
-      <div
-        className={clsx(
-          "fixed right-0 top-0 h-full z-50 flex flex-col transition-transform duration-200",
-          open ? "translate-x-0" : "translate-x-full"
-        )}
-        style={{ width, background: "var(--bg-surface)", borderLeft: "1px solid var(--border)" }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:opacity-70 cursor-pointer"
-            style={{ color: "var(--text-secondary)" }}>
-            <X size={16} />
+      <div onClick={onClose} style={{
+        position: "fixed", inset: 0, zIndex: 40,
+        background: "rgba(0,0,0,0.55)",
+        opacity: open ? 1 : 0,
+        pointerEvents: open ? "auto" : "none",
+        transition: "opacity 0.2s",
+      }} />
+      <div style={{
+        position: "fixed", right: 0, top: 0, height: "100%", zIndex: 50,
+        width, display: "flex", flexDirection: "column",
+        background: "var(--bg-surface)",
+        borderLeft: "1px solid var(--border-subtle)",
+        transform: open ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.22s cubic-bezier(0.32,0.72,0,1)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", height: 54, borderBottom: "1px solid var(--border-subtle)", flexShrink: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{title}</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid var(--border)", background: "var(--bg-elevated)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+            <X size={14} />
           </button>
         </div>
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
           {children}
         </div>
       </div>
