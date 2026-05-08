@@ -54,30 +54,41 @@ async function searchDDG(keyword: string, region: string): Promise<SupplierCandi
   const html = await res.text();
   const candidates: SupplierCandidate[] = [];
 
-  // Parse result blocks with regex
-  const resultBlocks = html.match(/<div class="result__body"[\s\S]*?<\/div>\s*<\/div>/g) ?? [];
+  // DDG wraps real URLs in redirect: href="//duckduckgo.com/l/?uddg=ENCODED_URL&..."
+  // class attribute is "links_main links_deep result__body", not exact match
+  const titleRx = /class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+  const snippetRx = /class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
 
-  for (const block of resultBlocks.slice(0, 12)) {
-    // Extract title
-    const titleM = block.match(/class="result__a"[^>]*>([^<]+)</);
-    const name = titleM?.[1]?.trim() ?? "";
+  const titles: { raw: string; name: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = titleRx.exec(html)) !== null) {
+    titles.push({ raw: m[1], name: m[2].replace(/<[^>]+>/g, "").trim() });
+  }
 
-    // Extract URL
-    const urlM = block.match(/href="([^"]+)"/);
-    const rawUrl = urlM?.[1] ?? "";
-    const url = rawUrl.startsWith("//") ? "https:" + rawUrl : rawUrl;
+  const snippets: string[] = [];
+  let s: RegExpExecArray | null;
+  while ((s = snippetRx.exec(html)) !== null) {
+    snippets.push(s[1].replace(/<[^>]+>/g, "").trim());
+  }
 
-    // Extract snippet
-    const snippetM = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
-    const description = snippetM?.[1]?.replace(/<[^>]+>/g, "").trim() ?? "";
+  for (let i = 0; i < Math.min(titles.length, 12); i++) {
+    const { raw, name } = titles[i];
+    if (!name) continue;
 
-    if (!name || !url || url.includes("duckduckgo.com")) continue;
+    // Decode DDG redirect URL → real URL
+    let url = raw.startsWith("//") ? "https:" + raw : raw;
+    try {
+      const uddg = new URL(url).searchParams.get("uddg");
+      if (uddg) url = decodeURIComponent(uddg);
+    } catch { /* keep original */ }
 
+    if (url.includes("duckduckgo.com")) continue;
+
+    const description = snippets[i] ?? "";
     const domain = extractDomain(url);
     const email = extractEmails(description);
     const tags = extractTags(name, description);
 
-    // Classify source
     let source: SupplierCandidate["source"] = "web";
     if (domain.includes("1688.com")) source = "1688";
     else if (domain.includes("alibaba.com")) source = "alibaba";
