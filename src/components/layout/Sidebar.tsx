@@ -14,7 +14,7 @@ import {
 import { clsx } from "clsx";
 
 const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "概览" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "概览" },
   { href: "/suppliers", icon: Users, label: "供应商库" },
   { href: "/templates", icon: FileText, label: "询盘模板" },
   { href: "/inquiries", icon: Send, label: "批量询盘" },

@@ -5,7 +5,7 @@ import { z } from "zod";
 const CreateInquirySchema = z.object({
   name: z.string().min(1),
   templateId: z.string(),
-  variables: z.record(z.string()),
+  variables: z.record(z.string(), z.string()),
   supplierIds: z.array(z.string()).min(1),
   channels: z.array(z.enum(["EMAIL", "WHATSAPP", "ALI1688", "FORM"])).min(1),
   scheduledAt: z.string().datetime().optional(),
