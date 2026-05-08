@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Trash2, Pencil, Users, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Users, SlidersHorizontal, Upload } from "lucide-react";
 import { SupplierDrawer } from "@/components/suppliers/SupplierDrawer";
+import { CsvImportModal } from "@/components/suppliers/CsvImportModal";
 
 const CHANNEL_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   EMAIL:    { bg: "rgba(59,130,246,0.12)",  color: "#60a5fa", label: "邮件"      },
@@ -36,6 +37,7 @@ export default function SuppliersPage() {
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState(true);
   const [hoverId, setHoverId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,16 +74,28 @@ export default function SuppliersPage() {
             共 {suppliers.length} 家供应商
           </p>
         </div>
-        <button onClick={() => { setEditing(null); setDrawerOpen(true); }} style={{
-          display: "flex", alignItems: "center", gap: 7,
-          height: 36, padding: "0 16px", borderRadius: 8,
-          background: "var(--accent)", border: "none",
-          color: "white", fontSize: 13.5, fontWeight: 500,
-          cursor: "pointer", fontFamily: "inherit",
-        }}>
-          <Plus size={15} strokeWidth={2.5} />
-          添加供应商
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setImportOpen(true)} style={{
+            display: "flex", alignItems: "center", gap: 7,
+            height: 36, padding: "0 16px", borderRadius: 8,
+            background: "var(--bg-surface)", border: "1px solid var(--border)",
+            color: "var(--text-secondary)", fontSize: 13.5, fontWeight: 500,
+            cursor: "pointer", fontFamily: "inherit",
+          }}>
+            <Upload size={14} />
+            导入 CSV
+          </button>
+          <button onClick={() => { setEditing(null); setDrawerOpen(true); }} style={{
+            display: "flex", alignItems: "center", gap: 7,
+            height: 36, padding: "0 16px", borderRadius: 8,
+            background: "var(--accent)", border: "none",
+            color: "white", fontSize: 13.5, fontWeight: 500,
+            cursor: "pointer", fontFamily: "inherit",
+          }}>
+            <Plus size={15} strokeWidth={2.5} />
+            添加供应商
+          </button>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -242,6 +256,13 @@ export default function SuppliersPage() {
         onSaved={load}
         initial={editing ? { ...editing } : undefined}
       />
+
+      {importOpen && (
+        <CsvImportModal
+          onClose={() => setImportOpen(false)}
+          onImported={(count) => { load(); if (count > 0) setImportOpen(false); }}
+        />
+      )}
     </div>
   );
 }
