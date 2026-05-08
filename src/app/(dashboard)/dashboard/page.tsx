@@ -35,7 +35,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 1200 }}>
+    <div style={{ padding: "28px 32px", maxWidth: 1100 }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>工作台</h1>
         <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginTop: 4 }}>供应链询盘管理中心</p>

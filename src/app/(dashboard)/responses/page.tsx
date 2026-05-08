@@ -132,7 +132,7 @@ export default function ResponsesPage() {
   };
 
   return (
-    <div style={{ padding: "32px 36px" }}>
+    <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>回复 & 报价</h1>
@@ -148,18 +148,20 @@ export default function ResponsesPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>加载中...</p>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>加载中...</p>
+        </div>
       ) : responses.length === 0 ? (
-        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "60px 20px", textAlign: "center" }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-            <MessageSquare size={20} color="var(--text-muted)" />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <MessageSquare size={22} color="var(--text-muted)" />
           </div>
           <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>暂无回复记录</p>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, marginBottom: 16 }}>询盘发出后，在此录入供应商回复和报价进行对比</p>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 6, marginBottom: 20 }}>询盘发出后，在此录入供应商回复和报价进行对比</p>
           <button onClick={() => setDrawerOpen(true)} style={{
-            display: "inline-flex", alignItems: "center", gap: 7, height: 34, padding: "0 16px",
+            display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 18px",
             borderRadius: 8, background: "var(--accent)", border: "none",
-            color: "white", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+            color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
           }}>
             <Plus size={14} />录入回复
           </button>

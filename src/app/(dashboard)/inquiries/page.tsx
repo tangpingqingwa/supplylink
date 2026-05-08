@@ -46,7 +46,7 @@ export default function InquiriesPage() {
   };
 
   return (
-    <div style={{ padding: "32px 36px" }}>
+    <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>批量询盘</h1>
@@ -62,18 +62,20 @@ export default function InquiriesPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>加载中...</p>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>加载中...</p>
+        </div>
       ) : inquiries.length === 0 ? (
-        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "60px 20px", textAlign: "center" }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-            <Send size={20} color="var(--text-muted)" />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <Send size={22} color="var(--text-muted)" />
           </div>
           <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>暂无询盘任务</p>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, marginBottom: 16 }}>创建任务后一键向所有供应商发送询盘</p>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 6, marginBottom: 20 }}>创建任务后一键向所有供应商发送询盘</p>
           <button onClick={() => setWizardOpen(true)} style={{
-            display: "inline-flex", alignItems: "center", gap: 7, height: 34, padding: "0 16px",
+            display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 18px",
             borderRadius: 8, background: "var(--accent)", border: "none",
-            color: "white", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+            color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
           }}>
             <Plus size={14} />新建询盘
           </button>

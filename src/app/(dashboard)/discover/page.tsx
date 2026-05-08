@@ -79,7 +79,7 @@ export default function DiscoverPage() {
   const isImporting = (id: string) => importing.has(id);
 
   return (
-    <div style={{ padding: "32px 36px" }}>
+    <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
         <div>

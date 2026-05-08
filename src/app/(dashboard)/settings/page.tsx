@@ -100,7 +100,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 760 }}>
+    <div style={{ padding: "28px 32px", maxWidth: 760 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>设置</h1>
         <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginTop: 4 }}>配置发送渠道和系统参数</p>

@@ -46,7 +46,7 @@ export default function TemplatesPage() {
   };
 
   return (
-    <div style={{ padding: "32px 36px" }}>
+    <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>询盘模板</h1>
@@ -62,17 +62,19 @@ export default function TemplatesPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>加载中...</p>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>加载中...</p>
+        </div>
       ) : templates.length === 0 ? (
-        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "60px 20px", textAlign: "center" }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-            <FileText size={20} color="var(--text-muted)" />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <FileText size={22} color="var(--text-muted)" />
           </div>
           <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>暂无模板</p>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>创建模板后可快速填入变量批量发送</p>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 6 }}>创建模板后可快速填入变量批量发送</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12, alignContent: "start" }}>
           {templates.map((t) => (
             <div key={t.id}
               onMouseEnter={() => setHoverId(t.id)}

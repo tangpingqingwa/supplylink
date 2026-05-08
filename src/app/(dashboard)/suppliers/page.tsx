@@ -64,7 +64,7 @@ export default function SuppliersPage() {
   };
 
   return (
-    <div style={{ padding: "32px 36px" }}>
+    <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
@@ -133,7 +133,7 @@ export default function SuppliersPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ flex: 1, background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
@@ -157,9 +157,9 @@ export default function SuppliersPage() {
               <tr><td colSpan={5} style={{ textAlign: "center", padding: 60, color: "var(--text-muted)", fontSize: 13 }}>加载中...</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={5}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "60px 20px", gap: 10 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Users size={20} color="var(--text-muted)" />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "100px 20px", gap: 12 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Users size={22} color="var(--text-muted)" />
                   </div>
                   <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>暂无供应商</p>
                   <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>点击右上角「添加供应商」开始</p>
