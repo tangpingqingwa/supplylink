@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── 供应商 ───────────────────────────────────────────────
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  company   String?
+  country   String?
+  category  String?
+  tags      String[]
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channels     Channel[]
+  inquiryItems InquiryItem[]
+}
+
+// 每个供应商可有多个联系渠道
+model Channel {
+  id         String      @id @default(cuid())
+  supplierId String
+  type       ChannelType
+  value      String
+  label      String?
+  primary    Boolean     @default(false)
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+enum ChannelType {
+  EMAIL
+  WHATSAPP
+  ALI1688
+  FORM
+}
+
+// ─── 询盘模板 ─────────────────────────────────────────────
+model Template {
+  id        String        @id @default(cuid())
+  name      String
+  language  String        @default("zh")
+  subject   String?
+  body      String
+  channels  ChannelType[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  inquiries Inquiry[]
+}
+
+// ─── 批量询盘任务 ─────────────────────────────────────────
+model Inquiry {
+  id          String        @id @default(cuid())
+  name        String
+  templateId  String
+  variables   Json
+  status      InquiryStatus @default(DRAFT)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  template Template      @relation(fields: [templateId], references: [id])
+  items    InquiryItem[]
+}
+
+enum InquiryStatus {
+  DRAFT
+  SENDING
+  SENT
+  PARTIAL
+  COMPLETED
+}
+
+// 单条发送记录
+model InquiryItem {
+  id         String      @id @default(cuid())
+  inquiryId  String
+  supplierId String
+  channel    ChannelType
+  status     ItemStatus  @default(PENDING)
+  sentAt     DateTime?
+  repliedAt  DateTime?
+  errorMsg   String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  inquiry  Inquiry   @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  supplier Supplier  @relation(fields: [supplierId], references: [id])
+  response Response?
+}
+
+enum ItemStatus {
+  PENDING
+  SENDING
+  SENT
+  REPLIED
+  FAILED
+  IGNORED
+}
+
+// ─── 回复 & 报价 ──────────────────────────────────────────
+model Response {
+  id            String   @id @default(cuid())
+  inquiryItemId String   @unique
+  rawContent    String
+  unitPrice     Float?
+  currency      String?  @default("CNY")
+  moq           Int?
+  leadTimeDays  Int?
+  notes         String?
+  receivedAt    DateTime @default(now())
+
+  inquiryItem InquiryItem @relation(fields: [inquiryItemId], references: [id], onDelete: Cascade)
+}
