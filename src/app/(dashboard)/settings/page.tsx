@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, MessageCircle, ShoppingBag, Globe, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 
 type Tab = "email" | "channels" | "account";
 
 const CHANNELS = [
-  { key: "email",    icon: Mail,          label: "Email",     desc: "通过 SMTP 发送邮件询盘",        env: "SMTP_USER" },
-  { key: "whatsapp", icon: MessageCircle, label: "WhatsApp",  desc: "Twilio WhatsApp Business API", env: "TWILIO_ACCOUNT_SID" },
-  { key: "ali1688",  icon: ShoppingBag,   label: "1688",      desc: "阿里巴巴平台自动化发送",         env: "" },
-  { key: "form",     icon: Globe,         label: "表单",       desc: "网页表单自动填写提交",            env: "" },
+  { key: "email",    icon: Mail,          label: "Email",    desc: "通过 SMTP 发送邮件询盘"        },
+  { key: "whatsapp", icon: MessageCircle, label: "WhatsApp", desc: "Twilio WhatsApp Business API" },
+  { key: "ali1688",  icon: ShoppingBag,   label: "1688",     desc: "阿里巴巴平台（手动跟进）"       },
+  { key: "form",     icon: Globe,         label: "表单",      desc: "网页表单自动填写提交"           },
 ];
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -34,29 +34,69 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("email");
   const [smtp, setSmtp] = useState({ host: "", port: "587", user: "", pass: "", from: "" });
+  const [twilio, setTwilio] = useState({ sid: "", token: "", from: "" });
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<"ok" | "fail" | null>(null);
   const [channelEnabled, setChannelEnabled] = useState<Record<string, boolean>>({ email: false, whatsapp: false, ali1688: false, form: false });
   const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(d => {
+      if (d.smtp_host) setSmtp({ host: d.smtp_host, port: d.smtp_port || "587", user: d.smtp_user || "", pass: d.smtp_pass || "", from: d.smtp_from || "" });
+      if (d.twilio_account_sid) setTwilio({ sid: d.twilio_account_sid, token: d.twilio_auth_token || "", from: d.twilio_whatsapp_from || "" });
+      setChannelEnabled({
+        email:    !!(d.smtp_host && d.smtp_user),
+        whatsapp: !!(d.twilio_account_sid),
+        ali1688:  false,
+        form:     false,
+      });
+    }).catch(() => {});
+  }, []);
 
   const testConnection = async () => {
     setTesting(true); setTestResult(null);
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1200));
     setTestResult(smtp.host && smtp.user ? "ok" : "fail");
     setTesting(false);
   };
 
   const saveSmtp = async () => {
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 800));
+    setSaving(true); setSaveMsg("");
+    const res = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        smtp_host: smtp.host, smtp_port: smtp.port,
+        smtp_user: smtp.user, smtp_from: smtp.from,
+        ...(smtp.pass && smtp.pass !== "••••••••" ? { smtp_pass: smtp.pass } : {}),
+      }),
+    });
     setSaving(false);
-    alert("设置已保存（需重启服务生效）");
+    setSaveMsg(res.ok ? "已保存" : "保存失败");
+    setTimeout(() => setSaveMsg(""), 3000);
+  };
+
+  const saveTwilio = async () => {
+    setSaving(true); setSaveMsg("");
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        twilio_account_sid: twilio.sid,
+        twilio_whatsapp_from: twilio.from,
+        ...(twilio.token && twilio.token !== "••••••••" ? { twilio_auth_token: twilio.token } : {}),
+      }),
+    });
+    setSaving(false);
+    setSaveMsg("已保存");
+    setTimeout(() => setSaveMsg(""), 3000);
   };
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "email", label: "邮件配置" },
+    { key: "email",    label: "邮件配置" },
     { key: "channels", label: "渠道状态" },
-    { key: "account", label: "账号" },
+    { key: "account",  label: "账号" },
   ];
 
   return (
@@ -82,6 +122,7 @@ export default function SettingsPage() {
       {/* Email Config */}
       {tab === "email" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* SMTP */}
           <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "20px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
               <div>
@@ -101,37 +142,40 @@ export default function SettingsPage() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 12 }}>
-                <Input label="SMTP Host" placeholder="smtp.gmail.com" value={smtp.host}
-                  onChange={e => setSmtp(s => ({ ...s, host: e.target.value }))} />
-                <Input label="Port" placeholder="587" value={smtp.port}
-                  onChange={e => setSmtp(s => ({ ...s, port: e.target.value }))} />
+                <Input label="SMTP Host" placeholder="smtp.gmail.com" value={smtp.host} onChange={e => setSmtp(s => ({ ...s, host: e.target.value }))} />
+                <Input label="Port" placeholder="587" value={smtp.port} onChange={e => setSmtp(s => ({ ...s, port: e.target.value }))} />
               </div>
-              <Input label="Username" placeholder="your@email.com" value={smtp.user}
-                onChange={e => setSmtp(s => ({ ...s, user: e.target.value }))} />
-              <Input label="Password" type="password" placeholder="••••••••••••" value={smtp.pass}
-                onChange={e => setSmtp(s => ({ ...s, pass: e.target.value }))} />
-              <Input label="From Address" placeholder="SupplyLink <noreply@yourdomain.com>" value={smtp.from}
-                onChange={e => setSmtp(s => ({ ...s, from: e.target.value }))} />
+              <Input label="Username" placeholder="your@email.com" value={smtp.user} onChange={e => setSmtp(s => ({ ...s, user: e.target.value }))} />
+              <Input label="Password" type="password" placeholder="••••••••••••" value={smtp.pass} onChange={e => setSmtp(s => ({ ...s, pass: e.target.value }))} />
+              <Input label="From Address" placeholder="SupplyLink <noreply@yourdomain.com>" value={smtp.from} onChange={e => setSmtp(s => ({ ...s, from: e.target.value }))} />
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={testConnection} disabled={testing} style={{
-                display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
-                borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-elevated)",
-                color: "var(--text-secondary)", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit",
-                opacity: testing ? 0.7 : 1,
-              }}>
-                {testing ? <Loader2 size={14} className="animate-spin" /> : null}
-                测试连接
+            <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "center" }}>
+              <button onClick={testConnection} disabled={testing} style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-elevated)", color: "var(--text-secondary)", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit", opacity: testing ? 0.7 : 1 }}>
+                {testing ? <Loader2 size={14} className="animate-spin" /> : null}测试连接
               </button>
-              <button onClick={saveSmtp} disabled={saving} style={{
-                display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
-                borderRadius: 8, border: "none", background: "var(--accent)",
-                color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-                opacity: saving ? 0.7 : 1,
-              }}>
-                {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-                保存设置
+              <button onClick={saveSmtp} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--accent)", color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
+                {saving ? <Loader2 size={14} className="animate-spin" /> : null}保存设置
               </button>
+              {saveMsg && <span style={{ fontSize: 12.5, color: "#3fb950" }}>{saveMsg}</span>}
+            </div>
+          </div>
+
+          {/* Twilio WhatsApp */}
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "20px 24px" }}>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Twilio WhatsApp</h2>
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 3 }}>WhatsApp Business API 发送询盘</p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <Input label="Account SID" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={twilio.sid} onChange={e => setTwilio(s => ({ ...s, sid: e.target.value }))} />
+              <Input label="Auth Token" type="password" placeholder="••••••••••••" value={twilio.token} onChange={e => setTwilio(s => ({ ...s, token: e.target.value }))} />
+              <Input label="From Number" placeholder="+14155238886" value={twilio.from} onChange={e => setTwilio(s => ({ ...s, from: e.target.value }))} />
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "center" }}>
+              <button onClick={saveTwilio} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--accent)", color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
+                {saving ? <Loader2 size={14} className="animate-spin" /> : null}保存设置
+              </button>
+              {saveMsg && <span style={{ fontSize: 12.5, color: "#3fb950" }}>{saveMsg}</span>}
             </div>
           </div>
         </div>
@@ -145,10 +189,7 @@ export default function SettingsPage() {
             <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 3 }}>管理各发送渠道的启用状态</p>
           </div>
           {CHANNELS.map((ch, i) => (
-            <div key={ch.key} style={{
-              display: "flex", alignItems: "center", gap: 14, padding: "16px 24px",
-              borderBottom: i < CHANNELS.length - 1 ? "1px solid var(--border-subtle)" : "none",
-            }}>
+            <div key={ch.key} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 24px", borderBottom: i < CHANNELS.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
               <div style={{ width: 36, height: 36, borderRadius: 9, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <ch.icon size={16} color="var(--text-secondary)" strokeWidth={1.75} />
               </div>

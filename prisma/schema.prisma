@@ -6,6 +6,13 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── 系统设置 ─────────────────────────────────────────────
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // ─── 供应商 ───────────────────────────────────────────────
 model Supplier {
   id        String   @id @default(cuid())

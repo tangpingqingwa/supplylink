@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getSetting } from "@/lib/settings";
 
 interface SendEmailOptions {
   to: string;
@@ -6,28 +7,17 @@ interface SendEmailOptions {
   body: string;
 }
 
-function getTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-}
-
 export async function sendEmail({ to, subject, body }: SendEmailOptions) {
-  if (!process.env.SMTP_USER) {
-    throw new Error("SMTP 未配置，请在 .env 中填写 SMTP_USER / SMTP_PASS");
+  const host = await getSetting("smtp_host");
+  const user = await getSetting("smtp_user");
+  const pass = await getSetting("smtp_pass");
+  const from = await getSetting("smtp_from") || user;
+  const port = Number(await getSetting("smtp_port") || 587);
+
+  if (!host || !user) {
+    throw new Error("SMTP 未配置，请在设置页面填写 SMTP 信息");
   }
-  const transporter = getTransporter();
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
-    to,
-    subject,
-    text: body,
-    html: body.replace(/\n/g, "<br>"),
-  });
+
+  const transporter = nodemailer.createTransport({ host, port, secure: false, auth: { user, pass } });
+  await transporter.sendMail({ from, to, subject, text: body, html: body.replace(/\n/g, "<br>") });
 }

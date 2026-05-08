@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { renderTemplate } from "@/lib/template";
 import { sendEmail } from "@/lib/senders/email";
+import { sendWhatsApp } from "@/lib/senders/whatsapp";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,16 +33,16 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       continue;
     }
 
+    const subject = renderTemplate(inquiry.template.subject ?? "询盘", variables);
+    const body    = renderTemplate(inquiry.template.body, variables);
+
     try {
       if (item.channel === "EMAIL") {
-        await sendEmail({
-          to: channel.value,
-          subject: renderTemplate(inquiry.template.subject ?? "询盘", variables),
-          body: renderTemplate(inquiry.template.body, variables),
-        });
+        await sendEmail({ to: channel.value, subject, body });
+      } else if (item.channel === "WHATSAPP") {
+        await sendWhatsApp({ to: channel.value, body: `${subject}\n\n${body}` });
       }
-      // WhatsApp / 1688 / Form 扩展点
-
+      // ALI1688 / FORM: 标记为需手动处理
       await prisma.inquiryItem.update({ where: { id: item.id }, data: { status: "SENT", sentAt: new Date() } });
       results.sent++;
     } catch (err) {
