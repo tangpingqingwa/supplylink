@@ -12,6 +12,7 @@ const NAV = [
   { href: "/templates",  icon: FileText,        label: "询盘模板" },
   { href: "/inquiries",  icon: Send,            label: "批量询盘" },
   { href: "/responses",  icon: MessageSquare,   label: "回复报价" },
+  { href: "/settings",  icon: Settings,        label: "设置" },
 ];
 
 export function Sidebar() {
@@ -87,14 +88,6 @@ export function Sidebar() {
 
       {/* Footer */}
       <div style={{ padding: "12px 10px", borderTop: "1px solid var(--border-subtle)" }}>
-        <Link href="/settings" style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "7px 10px", borderRadius: 8, fontSize: 13.5,
-          color: "var(--text-secondary)", textDecoration: "none",
-        }}>
-          <Settings size={15} strokeWidth={1.75} color="var(--text-muted)" />
-          设置
-        </Link>
         <div style={{
           marginTop: 12, padding: "10px", borderRadius: 8,
           background: "var(--bg-elevated)",

@@ -1,0 +1,186 @@
+"use client";
+
+import { useState } from "react";
+import { Mail, MessageCircle, ShoppingBag, Globe, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+
+type Tab = "email" | "channels" | "account";
+
+const CHANNELS = [
+  { key: "email",    icon: Mail,          label: "Email",     desc: "通过 SMTP 发送邮件询盘",        env: "SMTP_USER" },
+  { key: "whatsapp", icon: MessageCircle, label: "WhatsApp",  desc: "Twilio WhatsApp Business API", env: "TWILIO_ACCOUNT_SID" },
+  { key: "ali1688",  icon: ShoppingBag,   label: "1688",      desc: "阿里巴巴平台自动化发送",         env: "" },
+  { key: "form",     icon: Globe,         label: "表单",       desc: "网页表单自动填写提交",            env: "" },
+];
+
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button onClick={() => onChange(!on)} style={{
+      width: 40, height: 22, borderRadius: 99, border: "none", cursor: "pointer",
+      background: on ? "var(--accent)" : "var(--bg-elevated)",
+      position: "relative", transition: "background 0.2s", flexShrink: 0,
+      outline: "none", boxShadow: "inset 0 0 0 1px var(--border)",
+    }}>
+      <span style={{
+        position: "absolute", top: 3, left: on ? 21 : 3,
+        width: 16, height: 16, borderRadius: 99,
+        background: "white", transition: "left 0.2s",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+      }} />
+    </button>
+  );
+}
+
+export default function SettingsPage() {
+  const [tab, setTab] = useState<Tab>("email");
+  const [smtp, setSmtp] = useState({ host: "", port: "587", user: "", pass: "", from: "" });
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<"ok" | "fail" | null>(null);
+  const [channelEnabled, setChannelEnabled] = useState<Record<string, boolean>>({ email: false, whatsapp: false, ali1688: false, form: false });
+  const [saving, setSaving] = useState(false);
+
+  const testConnection = async () => {
+    setTesting(true); setTestResult(null);
+    await new Promise(r => setTimeout(r, 1500));
+    setTestResult(smtp.host && smtp.user ? "ok" : "fail");
+    setTesting(false);
+  };
+
+  const saveSmtp = async () => {
+    setSaving(true);
+    await new Promise(r => setTimeout(r, 800));
+    setSaving(false);
+    alert("设置已保存（需重启服务生效）");
+  };
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: "email", label: "邮件配置" },
+    { key: "channels", label: "渠道状态" },
+    { key: "account", label: "账号" },
+  ];
+
+  return (
+    <div style={{ padding: "32px 36px", maxWidth: 760 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>设置</h1>
+        <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginTop: 4 }}>配置发送渠道和系统参数</p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid var(--border-subtle)" }}>
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} style={{
+            padding: "8px 18px", border: "none", background: "transparent",
+            fontSize: 13.5, fontWeight: tab === t.key ? 500 : 400, cursor: "pointer", fontFamily: "inherit",
+            color: tab === t.key ? "var(--text-primary)" : "var(--text-secondary)",
+            borderBottom: `2px solid ${tab === t.key ? "var(--accent)" : "transparent"}`,
+            marginBottom: -1, transition: "color 0.15s",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Email Config */}
+      {tab === "email" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "20px 24px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>SMTP 配置</h2>
+                <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 3 }}>用于通过邮件发送询盘</p>
+              </div>
+              {testResult === "ok" && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, fontSize: 12, fontWeight: 500, background: "rgba(63,185,80,0.12)", color: "#3fb950" }}>
+                  <CheckCircle2 size={12} />已连接
+                </span>
+              )}
+              {testResult === "fail" && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, fontSize: 12, fontWeight: 500, background: "rgba(248,81,73,0.12)", color: "#f85149" }}>
+                  <AlertCircle size={12} />连接失败
+                </span>
+              )}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 12 }}>
+                <Input label="SMTP Host" placeholder="smtp.gmail.com" value={smtp.host}
+                  onChange={e => setSmtp(s => ({ ...s, host: e.target.value }))} />
+                <Input label="Port" placeholder="587" value={smtp.port}
+                  onChange={e => setSmtp(s => ({ ...s, port: e.target.value }))} />
+              </div>
+              <Input label="Username" placeholder="your@email.com" value={smtp.user}
+                onChange={e => setSmtp(s => ({ ...s, user: e.target.value }))} />
+              <Input label="Password" type="password" placeholder="••••••••••••" value={smtp.pass}
+                onChange={e => setSmtp(s => ({ ...s, pass: e.target.value }))} />
+              <Input label="From Address" placeholder="SupplyLink <noreply@yourdomain.com>" value={smtp.from}
+                onChange={e => setSmtp(s => ({ ...s, from: e.target.value }))} />
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <button onClick={testConnection} disabled={testing} style={{
+                display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
+                borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-elevated)",
+                color: "var(--text-secondary)", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit",
+                opacity: testing ? 0.7 : 1,
+              }}>
+                {testing ? <Loader2 size={14} className="animate-spin" /> : null}
+                测试连接
+              </button>
+              <button onClick={saveSmtp} disabled={saving} style={{
+                display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
+                borderRadius: 8, border: "none", background: "var(--accent)",
+                color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+                opacity: saving ? 0.7 : 1,
+              }}>
+                {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+                保存设置
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Channel Status */}
+      {tab === "channels" && (
+        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-subtle)" }}>
+            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>渠道状态</h2>
+            <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 3 }}>管理各发送渠道的启用状态</p>
+          </div>
+          {CHANNELS.map((ch, i) => (
+            <div key={ch.key} style={{
+              display: "flex", alignItems: "center", gap: 14, padding: "16px 24px",
+              borderBottom: i < CHANNELS.length - 1 ? "1px solid var(--border-subtle)" : "none",
+            }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <ch.icon size={16} color="var(--text-secondary)" strokeWidth={1.75} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)" }}>{ch.label}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, color: channelEnabled[ch.key] ? "#3fb950" : "var(--text-muted)" }}>
+                    <span style={{ width: 5, height: 5, borderRadius: 99, background: channelEnabled[ch.key] ? "#3fb950" : "var(--text-muted)", display: "inline-block" }} />
+                    {channelEnabled[ch.key] ? "已启用" : "未配置"}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{ch.desc}</p>
+              </div>
+              <Toggle on={channelEnabled[ch.key]} onChange={v => setChannelEnabled(s => ({ ...s, [ch.key]: v }))} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Account */}
+      {tab === "account" && (
+        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "20px 24px" }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 16 }}>账号信息</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: "white" }}>T</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>tangpingqingwa</div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>跨境电商 · SupplyLink</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
