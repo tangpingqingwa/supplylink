@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Users, Send, MessageSquare, Clock, ArrowUpRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
@@ -5,7 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 async function getStats() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [supplierTotal, supplierMonth, sentTotal, sentMonth, pendingReplies, receivedReplies] =
+  const [supplierTotal, supplierMonth, sentTotal, sentMonth, pendingReplies, receivedReplies, templateTotal] =
     await Promise.all([
       prisma.supplier.count(),
       prisma.supplier.count({ where: { createdAt: { gte: monthStart } } }),
@@ -13,9 +15,10 @@ async function getStats() {
       prisma.inquiryItem.count({ where: { status: { in: ["SENT", "REPLIED"] }, sentAt: { gte: monthStart } } }),
       prisma.inquiryItem.count({ where: { status: "SENT" } }),
       prisma.response.count(),
+      prisma.template.count(),
     ]);
   const replyRate = sentTotal > 0 ? Math.round((receivedReplies / sentTotal) * 100) : 0;
-  return { supplierTotal, supplierMonth, sentTotal, sentMonth, pendingReplies, receivedReplies, replyRate };
+  return { supplierTotal, supplierMonth, sentTotal, sentMonth, pendingReplies, receivedReplies, replyRate, templateTotal };
 }
 
 export default async function DashboardPage() {
@@ -96,7 +99,7 @@ export default async function DashboardPage() {
           <div style={{ padding: "8px 12px" }}>
             {[
               { step: "1", label: "添加供应商",   href: "/suppliers",  done: s.supplierTotal > 0 },
-              { step: "2", label: "创建询盘模板", href: "/templates",  done: false },
+              { step: "2", label: "创建询盘模板", href: "/templates",  done: s.templateTotal > 0 },
               { step: "3", label: "发起批量询盘", href: "/inquiries",  done: s.sentTotal > 0 },
               { step: "4", label: "录入回复报价", href: "/responses",  done: s.receivedReplies > 0 },
             ].map(({ step, label, href, done }) => (

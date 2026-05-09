@@ -62,7 +62,7 @@ async function searchDDG(keyword: string, region: string): Promise<SupplierCandi
   const titles: { raw: string; name: string }[] = [];
   let m: RegExpExecArray | null;
   while ((m = titleRx.exec(html)) !== null) {
-    titles.push({ raw: m[1], name: m[2].replace(/<[^>]+>/g, "").trim() });
+    titles.push({ raw: m[1], name: decodeHtml(m[2].replace(/<[^>]+>/g, "").trim()) });
   }
 
   const snippets: string[] = [];
@@ -147,4 +147,14 @@ export async function discoverSuppliers(keyword: string, region = "CN"): Promise
     console.error("Discover search failed:", err);
     return [];
   }
+}
+
+function decodeHtml(str: string): string {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
 }

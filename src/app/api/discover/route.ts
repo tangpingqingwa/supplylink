@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const existing = await prisma.supplier.findMany({
     select: { id: true, name: true },
   });
-  const existingNames = new Set(existing.map(s => s.name.toLowerCase()));
+  const existingNames = new Set(existing.map((s: { name: string }) => s.name.toLowerCase()));
 
   const enriched = candidates.map(c => ({
     ...c,

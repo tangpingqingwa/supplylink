@@ -28,7 +28,7 @@ export function Sidebar() {
       top: 0,
       display: "flex",
       flexDirection: "column",
-      background: "var(--bg-surface)",
+      background: "var(--bg-elevated)",
       borderRight: "1px solid var(--border-subtle)",
     }}>
       {/* Logo */}
@@ -65,9 +65,9 @@ export function Sidebar() {
               padding: "7px 10px",
               borderRadius: 8,
               fontSize: 13.5,
-              fontWeight: active ? 500 : 400,
-              color: active ? "var(--text-primary)" : "var(--text-secondary)",
-              background: active ? "var(--bg-elevated)" : "transparent",
+              fontWeight: active ? 600 : 400,
+              color: active ? "var(--accent)" : "var(--text-secondary)",
+              background: active ? "var(--bg-hover)" : "transparent",
               textDecoration: "none",
               transition: "all 0.15s",
               position: "relative",
@@ -80,7 +80,7 @@ export function Sidebar() {
                 }} />
               )}
               <Icon size={15} strokeWidth={active ? 2 : 1.75}
-                color={active ? "var(--accent-light)" : "var(--text-muted)"} />
+                color={active ? "var(--accent)" : "var(--text-secondary)"} />
               {label}
             </Link>
           );
@@ -91,7 +91,8 @@ export function Sidebar() {
       <div style={{ padding: "12px 10px", borderTop: "1px solid var(--border-subtle)" }}>
         <div style={{
           marginTop: 12, padding: "10px", borderRadius: 8,
-          background: "var(--bg-elevated)",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border-subtle)",
           display: "flex", alignItems: "center", gap: 10,
         }}>
           <div style={{

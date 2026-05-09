@@ -26,7 +26,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const results = { sent: 0, failed: 0 };
 
   for (const item of inquiry.items) {
-    const channel = item.supplier.channels.find((c) => c.type === item.channel);
+    const channel = item.supplier.channels.find((c: { type: string }) => c.type === item.channel);
     if (!channel) {
       await prisma.inquiryItem.update({ where: { id: item.id }, data: { status: "FAILED", errorMsg: "渠道联系方式未配置" } });
       results.failed++;

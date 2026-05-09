@@ -9,7 +9,7 @@ export async function GET() {
   const rows = await prisma.setting.findMany({
     where: { key: { in: ALLOWED_KEYS } },
   });
-  const settings = Object.fromEntries(rows.map(r => [r.key, r.value]));
+  const settings = Object.fromEntries(rows.map((r: { key: string; value: string }) => [r.key, r.value]));
   // Mask sensitive values
   if (settings.smtp_pass) settings.smtp_pass = "••••••••";
   if (settings.twilio_auth_token) settings.twilio_auth_token = "••••••••";
