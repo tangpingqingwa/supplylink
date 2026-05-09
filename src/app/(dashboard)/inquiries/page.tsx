@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Send, CheckCircle2, AlertCircle, Clock, Loader2, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { NewInquiryWizard } from "@/components/inquiries/NewInquiryWizard";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -100,7 +101,11 @@ export default function InquiriesPage() {
                     onMouseLeave={() => setHoverId(null)}
                     style={{ borderBottom: "1px solid var(--border-subtle)", background: isHover ? "var(--bg-elevated)" : "transparent", transition: "background 0.1s" }}>
                     <td style={{ padding: "12px 16px" }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)" }}>{inq.name}</span>
+                      <Link href={`/inquiries/${inq.id}`} style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)", textDecoration: "none" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "var(--accent)")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "var(--text-primary)")}>
+                        {inq.name}
+                      </Link>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{inq.template.name}</span>
