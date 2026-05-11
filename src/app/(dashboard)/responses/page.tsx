@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, MessageSquare, Star, Trophy } from "lucide-react";
+import { Plus, MessageSquare, Pencil, Trophy } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input, Textarea } from "@/components/ui/Input";
+import { RecordResponseModal } from "@/components/responses/RecordResponseModal";
 
 const AVATAR_COLORS = [
   ["#1e3a5f","#3b82f6"],["#1e3a2f","#4ade80"],["#3a1e3a","#c084fc"],
@@ -108,6 +109,7 @@ export default function ResponsesPage() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingResponse, setEditingResponse] = useState<Response | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -243,8 +245,10 @@ export default function ResponsesPage() {
                                 <span style={{ display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{r.notes || "—"}</span>
                               </td>
                               <td style={{ padding: "12px 16px", width: 36 }}>
-                                <button style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid var(--border-subtle)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", opacity: isHover ? 1 : 0, transition: "opacity 0.15s" }}>
-                                  <Star size={13} />
+                                <button
+                                  onClick={() => setEditingResponse(r)}
+                                  style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid var(--border-subtle)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", opacity: isHover ? 1 : 0, transition: "opacity 0.15s" }}>
+                                  <Pencil size={12} />
                                 </button>
                               </td>
                             </tr>
@@ -260,6 +264,23 @@ export default function ResponsesPage() {
       )}
 
       <RecordDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onSaved={load} />
+
+      {editingResponse && (
+        <RecordResponseModal
+          item={{ id: editingResponse.inquiryItem.id, supplier: editingResponse.inquiryItem.supplier }}
+          existingResponse={{
+            id: editingResponse.id,
+            unitPrice: editingResponse.unitPrice,
+            currency: editingResponse.currency,
+            moq: editingResponse.moq,
+            leadTimeDays: editingResponse.leadTimeDays,
+            rawContent: editingResponse.rawContent,
+            notes: editingResponse.notes,
+          }}
+          onClose={() => setEditingResponse(null)}
+          onSaved={() => { setEditingResponse(null); load(); }}
+        />
+      )}
     </div>
   );
 }

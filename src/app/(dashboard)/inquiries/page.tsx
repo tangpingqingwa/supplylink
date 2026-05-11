@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Send, CheckCircle2, AlertCircle, Clock, Loader2, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Plus, Send, Loader2, Search } from "lucide-react";
 import Link from "next/link";
 import { NewInquiryWizard } from "@/components/inquiries/NewInquiryWizard";
 import { formatDistanceToNow } from "date-fns";
@@ -27,6 +27,8 @@ export default function InquiriesPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,6 +49,24 @@ export default function InquiriesPage() {
     finally { setSending(null); }
   };
 
+  const filtered = useMemo(() => inquiries.filter(inq => {
+    const q = search.trim().toLowerCase();
+    if (q && !inq.name.toLowerCase().includes(q)) return false;
+    if (statusFilter === "ALL") return true;
+    if (statusFilter === "SCHEDULED") return inq.status === "DRAFT" && !!inq.scheduledAt;
+    if (statusFilter === "DRAFT") return inq.status === "DRAFT" && !inq.scheduledAt;
+    return inq.status === statusFilter;
+  }), [inquiries, search, statusFilter]);
+
+  const STATUS_FILTERS = [
+    { key: "ALL",       label: "全部" },
+    { key: "DRAFT",     label: "草稿" },
+    { key: "SCHEDULED", label: "定时发送" },
+    { key: "SENT",      label: "已发送" },
+    { key: "PARTIAL",   label: "部分失败" },
+    { key: "COMPLETED", label: "已完成" },
+  ];
+
   return (
     <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
@@ -63,11 +83,36 @@ export default function InquiriesPage() {
         </button>
       </div>
 
+      {/* Search + Filter */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: "0 0 220px" }}>
+          <Search size={13} color="var(--text-muted)" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+          <input
+            placeholder="搜索任务名称..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: "100%", height: 32, padding: "0 10px 0 30px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-surface)", color: "var(--text-primary)", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {STATUS_FILTERS.map(f => (
+            <button key={f.key} onClick={() => setStatusFilter(f.key)} style={{
+              height: 32, padding: "0 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 500,
+              cursor: "pointer", fontFamily: "inherit", border: "1px solid",
+              borderColor: statusFilter === f.key ? "var(--accent)" : "var(--border)",
+              background: statusFilter === f.key ? "rgba(37,99,235,0.08)" : "var(--bg-surface)",
+              color: statusFilter === f.key ? "var(--accent)" : "var(--text-secondary)",
+              transition: "all 0.15s",
+            }}>{f.label}</button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>加载中...</p>
         </div>
-      ) : inquiries.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
             <Send size={22} color="var(--text-muted)" />
@@ -93,7 +138,7 @@ export default function InquiriesPage() {
               </tr>
             </thead>
             <tbody>
-              {inquiries.map((inq) => {
+              {filtered.map((inq) => {
                 const displayStatus = inq.status === "DRAFT" && inq.scheduledAt ? "SCHEDULED" : inq.status;
                 const st = STATUS[displayStatus] ?? STATUS.DRAFT;
                 const isHover = hoverId === inq.id;

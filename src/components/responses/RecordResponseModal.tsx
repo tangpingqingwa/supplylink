@@ -42,20 +42,18 @@ export function RecordResponseModal({ item, existingResponse, onClose, onSaved }
   const save = async () => {
     if (!rawContent.trim()) { setError("回复内容不能为空"); return; }
     setSaving(true); setError("");
+    const body = {
+      rawContent: rawContent.trim(),
+      unitPrice: unitPrice ? parseFloat(unitPrice) : undefined,
+      currency: currency || undefined,
+      moq: moq ? parseInt(moq) : undefined,
+      leadTimeDays: leadTimeDays ? parseInt(leadTimeDays) : undefined,
+      notes: notes.trim() || undefined,
+    };
     try {
-      const res = await fetch("/api/responses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inquiryItemId: item.id,
-          rawContent: rawContent.trim(),
-          unitPrice: unitPrice ? parseFloat(unitPrice) : undefined,
-          currency: currency || undefined,
-          moq: moq ? parseInt(moq) : undefined,
-          leadTimeDays: leadTimeDays ? parseInt(leadTimeDays) : undefined,
-          notes: notes.trim() || undefined,
-        }),
-      });
+      const res = ex?.id
+        ? await fetch(`/api/responses/${ex.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        : await fetch("/api/responses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, inquiryItemId: item.id }) });
       if (!res.ok) { const d = await res.json(); setError(d.error ?? "保存失败"); return; }
       onSaved();
     } catch { setError("网络错误，请重试"); }
