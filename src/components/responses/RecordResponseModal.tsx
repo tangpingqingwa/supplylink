@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Sparkles } from "lucide-react";
 
 interface Item {
   id: string;
@@ -38,6 +38,28 @@ export function RecordResponseModal({ item, existingResponse, onClose, onSaved }
   const [notes,        setNotes]        = useState(ex?.notes ?? "");
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState("");
+  const [analyzing,    setAnalyzing]    = useState(false);
+  const [analyzeError, setAnalyzeError] = useState("");
+
+  const analyzeQuote = async () => {
+    if (!rawContent.trim()) return;
+    setAnalyzing(true); setAnalyzeError("");
+    try {
+      const res = await fetch("/api/ai/analyze-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawContent }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAnalyzeError(data.error ?? "解析失败"); return; }
+      if (data.unitPrice    != null) setUnitPrice(String(data.unitPrice));
+      if (data.currency     != null) setCurrency(data.currency);
+      if (data.moq          != null) setMoq(String(data.moq));
+      if (data.leadTimeDays != null) setLeadTimeDays(String(data.leadTimeDays));
+      if (data.notes        != null) setNotes(data.notes);
+    } catch { setAnalyzeError("网络错误，请重试"); }
+    finally { setAnalyzing(false); }
+  };
 
   const save = async () => {
     if (!rawContent.trim()) { setError("回复内容不能为空"); return; }
@@ -87,10 +109,28 @@ export function RecordResponseModal({ item, existingResponse, onClose, onSaved }
 
         {/* Raw content */}
         <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>供应商回复原文 *</label>
-          <textarea value={rawContent} onChange={e => setRawContent(e.target.value)} rows={3}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+            <label style={{ ...labelStyle, marginBottom: 0 }}>供应商回复原文 *</label>
+            <button
+              onClick={analyzeQuote}
+              disabled={analyzing || !rawContent.trim()}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                height: 26, padding: "0 10px", borderRadius: 6,
+                border: "1px solid var(--accent)", background: analyzing ? "rgba(37,99,235,0.08)" : "rgba(37,99,235,0.06)",
+                color: "var(--accent)", fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+                opacity: (!rawContent.trim() || analyzing) ? 0.5 : 1,
+              }}>
+              {analyzing ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+              {analyzing ? "解析中..." : "AI 解析"}
+            </button>
+          </div>
+          <textarea value={rawContent} onChange={e => { setRawContent(e.target.value); setAnalyzeError(""); }} rows={3}
             placeholder="粘贴供应商的回复内容..."
             style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }} />
+          {analyzeError && (
+            <p style={{ fontSize: 12, color: "var(--red)", marginTop: 4 }}>{analyzeError}</p>
+          )}
         </div>
 
         {/* Price row */}
