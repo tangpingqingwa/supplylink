@@ -8,16 +8,17 @@ import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 
 interface Inquiry {
-  id: string; name: string; status: string; createdAt: string; sentAt?: string;
+  id: string; name: string; status: string; createdAt: string; sentAt?: string; scheduledAt?: string;
   template: { name: string }; _count: { items: number };
 }
 
 const STATUS: Record<string, { label: string; bg: string; color: string; dot: string }> = {
-  DRAFT:     { label: "草稿",   bg: "rgba(72,79,88,0.4)",   color: "#8b949e", dot: "#484f58" },
-  SENDING:   { label: "发送中", bg: "rgba(59,130,246,0.12)", color: "#60a5fa", dot: "#3b82f6" },
-  SENT:      { label: "已发送", bg: "rgba(63,185,80,0.12)",  color: "#4ade80", dot: "#3fb950" },
-  PARTIAL:   { label: "部分失败", bg: "rgba(210,153,34,0.12)", color: "#fbbf24", dot: "#d29922" },
-  COMPLETED: { label: "已完成", bg: "rgba(63,185,80,0.12)",  color: "#4ade80", dot: "#3fb950" },
+  DRAFT:     { label: "草稿",   bg: "rgba(148,163,184,0.15)", color: "#64748B", dot: "#94A3B8" },
+  SCHEDULED: { label: "定时发送", bg: "rgba(124,58,237,0.10)", color: "#7C3AED", dot: "#7C3AED" },
+  SENDING:   { label: "发送中", bg: "rgba(37,99,235,0.12)",  color: "#2563EB", dot: "#3B82F6" },
+  SENT:      { label: "已发送", bg: "rgba(22,163,74,0.12)",  color: "#16A34A", dot: "#16A34A" },
+  PARTIAL:   { label: "部分失败", bg: "rgba(217,119,6,0.12)", color: "#D97706", dot: "#D97706" },
+  COMPLETED: { label: "已完成", bg: "rgba(22,163,74,0.12)",  color: "#16A34A", dot: "#16A34A" },
 };
 
 export default function InquiriesPage() {
@@ -93,7 +94,8 @@ export default function InquiriesPage() {
             </thead>
             <tbody>
               {inquiries.map((inq) => {
-                const st = STATUS[inq.status] ?? STATUS.DRAFT;
+                const displayStatus = inq.status === "DRAFT" && inq.scheduledAt ? "SCHEDULED" : inq.status;
+                const st = STATUS[displayStatus] ?? STATUS.DRAFT;
                 const isHover = hoverId === inq.id;
                 return (
                   <tr key={inq.id}
@@ -118,6 +120,11 @@ export default function InquiriesPage() {
                         <span style={{ width: 6, height: 6, borderRadius: 99, background: st.dot, flexShrink: 0 }} />
                         {st.label}
                       </span>
+                      {inq.scheduledAt && inq.status === "DRAFT" && (
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
+                          {new Date(inq.scheduledAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
@@ -125,7 +132,7 @@ export default function InquiriesPage() {
                       </span>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
-                      {(inq.status === "DRAFT" || inq.status === "PARTIAL") && (
+                      {((inq.status === "DRAFT" && !inq.scheduledAt) || inq.status === "PARTIAL") && (
                         <button onClick={() => sendInquiry(inq.id)}
                           disabled={sending === inq.id}
                           style={{

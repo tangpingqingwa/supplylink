@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
+import { inquiryQueue } from "@/lib/queue/inquiry-queue";
 
 const CreateInquirySchema = z.object({
   name: z.string().min(1),
@@ -16,7 +17,8 @@ export async function GET() {
   const authError = await requireAuth();
   if (authError) return authError;
   const inquiries = await prisma.inquiry.findMany({
-    include: {
+    select: {
+      id: true, name: true, status: true, createdAt: true, sentAt: true, scheduledAt: true,
       template: { select: { name: true } },
       _count: { select: { items: true } },
     },
@@ -39,13 +41,29 @@ export async function POST(req: Request) {
     channels.map((channel) => ({ supplierId, channel }))
   );
 
+  const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
+
   const inquiry = await prisma.inquiry.create({
     data: {
       ...data,
-      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+      scheduledAt: scheduledDate,
       items: { create: items },
     },
     include: { items: true },
   });
+
+  if (scheduledDate) {
+    const delay = scheduledDate.getTime() - Date.now();
+    try {
+      await inquiryQueue.add(
+        "send",
+        { inquiryId: inquiry.id },
+        { delay: Math.max(delay, 0), jobId: `inquiry-${inquiry.id}` }
+      );
+    } catch {
+      // Redis unavailable — inquiry saved as DRAFT, user can send manually
+    }
+  }
+
   return NextResponse.json(inquiry, { status: 201 });
 }

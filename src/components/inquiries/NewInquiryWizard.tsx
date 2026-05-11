@@ -25,6 +25,7 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
   const [selectedSuppliers, setSelectedSuppliers] = useState<Set<string>>(new Set());
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set(["EMAIL"]));
   const [name, setName] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
           variables,
           supplierIds: [...selectedSuppliers],
           channels: [...selectedChannels],
+          ...(scheduledAt ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
         }),
       });
       onSaved();
@@ -80,7 +82,7 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
 
   const handleClose = () => {
     setStep(0); setSelectedTemplate(null); setVariables({});
-    setSelectedSuppliers(new Set()); setName(""); onClose();
+    setSelectedSuppliers(new Set()); setName(""); setScheduledAt(""); onClose();
   };
 
   if (!open) return null;
@@ -199,6 +201,26 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
             <div className="space-y-4">
               <Input label="任务名称 *" placeholder="如：2024Q3 蓝牙耳机询盘" value={name}
                 onChange={(e) => setName(e.target.value)} />
+              <div>
+                <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>定时发送（可选）</p>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  style={{
+                    width: "100%", height: 36, padding: "0 12px", borderRadius: 8,
+                    border: "1px solid var(--border)", background: "var(--bg-elevated)",
+                    color: "var(--text-primary)", fontSize: 13, fontFamily: "inherit",
+                    outline: "none", boxSizing: "border-box",
+                  }}
+                />
+                {scheduledAt && (
+                  <p className="text-xs mt-1" style={{ color: "var(--accent)" }}>
+                    将在 {new Date(scheduledAt).toLocaleString("zh-CN")} 自动发送
+                  </p>
+                )}
+              </div>
               <div className="rounded-xl p-4 space-y-2 text-sm"
                 style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
                 <div className="flex justify-between">
@@ -233,7 +255,9 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
           {step < STEPS.length - 1 ? (
             <Button icon={<ChevronRight size={14} />} disabled={!canNext} onClick={() => setStep((s) => s + 1)}>下一步</Button>
           ) : (
-            <Button loading={loading} disabled={!canNext} onClick={handleCreate}>创建并保存</Button>
+            <Button loading={loading} disabled={!canNext} onClick={handleCreate}>
+              {scheduledAt ? "创建并定时发送" : "创建并保存"}
+            </Button>
           )}
         </div>
       </div>
