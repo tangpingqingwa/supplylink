@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
-  LayoutDashboard, Users, FileText, Send, MessageSquare, Settings, Zap, Compass,
+  LayoutDashboard, Users, FileText, Send, MessageSquare, Settings, Zap, Compass, LogOut,
 } from "lucide-react";
 
 const NAV = [
@@ -18,6 +19,9 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const initials = (user?.name ?? user?.email ?? "U").slice(0, 1).toUpperCase();
 
   return (
     <aside style={{
@@ -90,25 +94,31 @@ export function Sidebar() {
       {/* Footer */}
       <div style={{ padding: "12px 10px", borderTop: "1px solid var(--border-subtle)" }}>
         <div style={{
-          marginTop: 12, padding: "10px", borderRadius: 8,
+          padding: "10px", borderRadius: 8,
           background: "var(--bg-surface)",
           border: "1px solid var(--border-subtle)",
           display: "flex", alignItems: "center", gap: 10,
         }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 99,
+            width: 28, height: 28, borderRadius: 99, flexShrink: 0,
             background: "linear-gradient(135deg, #2563eb, #7c3aed)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11, fontWeight: 700, color: "white", flexShrink: 0,
-          }}>T</div>
-          <div style={{ minWidth: 0 }}>
+            fontSize: 11, fontWeight: 700, color: "white",
+          }}>{initials}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              tangpingqingwa
+              {user?.name ?? "用户"}
             </div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              跨境电商
+              {user?.email}
             </div>
           </div>
+          <button onClick={() => signOut({ callbackUrl: "/login" })} title="退出登录" style={{
+            background: "none", border: "none", cursor: "pointer", padding: 4,
+            color: "var(--text-muted)", display: "flex", alignItems: "center", flexShrink: 0,
+          }}>
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
     </aside>

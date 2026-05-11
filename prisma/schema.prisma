@@ -6,6 +6,15 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── 用户 ─────────────────────────────────────────────────
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  hashedPassword String
+  createdAt      DateTime @default(now())
+}
+
 // ─── 系统设置 ─────────────────────────────────────────────
 model Setting {
   key       String   @id

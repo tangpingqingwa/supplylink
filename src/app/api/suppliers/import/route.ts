@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { ChannelType } from "@prisma/client";
 
 const ChannelSchema = z.object({
   type:    z.enum(["EMAIL", "WHATSAPP", "ALI1688", "FORM"]),
@@ -40,7 +39,7 @@ export async function POST(req: Request) {
             notes:   s.notes,
             channels: s.channels.length ? {
               create: s.channels.map(ch => ({
-                type:    ch.type as ChannelType,
+                type:    ch.type as "EMAIL" | "WHATSAPP" | "ALI1688" | "FORM",
                 value:   ch.value,
                 primary: ch.primary,
               })),
