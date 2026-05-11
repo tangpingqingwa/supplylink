@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/api-auth";
 
 const ALLOWED_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from",
-  "twilio_account_sid", "twilio_auth_token", "twilio_whatsapp_from"];
+  "twilio_account_sid", "twilio_auth_token", "twilio_whatsapp_from",
+  "email_enabled", "whatsapp_enabled"];
 
 export async function GET() {
   const authError = await requireAuth();

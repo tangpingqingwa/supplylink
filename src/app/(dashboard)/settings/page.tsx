@@ -46,8 +46,8 @@ export default function SettingsPage() {
       if (d.smtp_host) setSmtp({ host: d.smtp_host, port: d.smtp_port || "587", user: d.smtp_user || "", pass: d.smtp_pass || "", from: d.smtp_from || "" });
       if (d.twilio_account_sid) setTwilio({ sid: d.twilio_account_sid, token: d.twilio_auth_token || "", from: d.twilio_whatsapp_from || "" });
       setChannelEnabled({
-        email:    !!(d.smtp_host && d.smtp_user),
-        whatsapp: !!(d.twilio_account_sid),
+        email:    d.email_enabled === "1",
+        whatsapp: d.whatsapp_enabled === "1",
         ali1688:  false,
         form:     false,
       });
@@ -203,7 +203,16 @@ export default function SettingsPage() {
                 </div>
                 <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{ch.desc}</p>
               </div>
-              <Toggle on={channelEnabled[ch.key]} onChange={v => setChannelEnabled(s => ({ ...s, [ch.key]: v }))} />
+              <Toggle on={channelEnabled[ch.key]} onChange={async v => {
+                setChannelEnabled(s => ({ ...s, [ch.key]: v }));
+                if (ch.key === "email" || ch.key === "whatsapp") {
+                  await fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ [`${ch.key}_enabled`]: v ? "1" : "0" }),
+                  });
+                }
+              }} />
             </div>
           ))}
         </div>

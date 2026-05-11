@@ -23,12 +23,31 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   if (!inquiry) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Check which channels are enabled
+  const settingRows = await prisma.setting.findMany({
+    where: { key: { in: ["email_enabled", "whatsapp_enabled"] } },
+  });
+  const settings = Object.fromEntries(settingRows.map((r: { key: string; value: string }) => [r.key, r.value]));
+  const emailEnabled    = settings.email_enabled !== "0";
+  const whatsappEnabled = settings.whatsapp_enabled !== "0";
+
   await prisma.inquiry.update({ where: { id }, data: { status: "SENDING", sentAt: new Date() } });
 
   const variables = inquiry.variables as Record<string, string>;
   const results = { sent: 0, failed: 0 };
 
   for (const item of inquiry.items) {
+    if (item.channel === "EMAIL" && !emailEnabled) {
+      await prisma.inquiryItem.update({ where: { id: item.id }, data: { status: "FAILED", errorMsg: "邮件渠道已禁用" } });
+      results.failed++;
+      continue;
+    }
+    if (item.channel === "WHATSAPP" && !whatsappEnabled) {
+      await prisma.inquiryItem.update({ where: { id: item.id }, data: { status: "FAILED", errorMsg: "WhatsApp 渠道已禁用" } });
+      results.failed++;
+      continue;
+    }
+
     const channel = item.supplier.channels.find((c: { type: string }) => c.type === item.channel);
     if (!channel) {
       await prisma.inquiryItem.update({ where: { id: item.id }, data: { status: "FAILED", errorMsg: "渠道联系方式未配置" } });
