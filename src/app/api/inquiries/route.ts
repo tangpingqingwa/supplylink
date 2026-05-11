@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
@@ -12,6 +13,8 @@ const CreateInquirySchema = z.object({
 });
 
 export async function GET() {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const inquiries = await prisma.inquiry.findMany({
     include: {
       template: { select: { name: true } },
@@ -23,6 +26,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const body = await req.json();
   const parsed = CreateInquirySchema.safeParse(body);
   if (!parsed.success) {

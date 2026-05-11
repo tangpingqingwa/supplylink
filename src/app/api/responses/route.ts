@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
@@ -13,6 +14,8 @@ const CreateResponseSchema = z.object({
 });
 
 export async function GET(req: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const { searchParams } = new URL(req.url);
   const inquiryId = searchParams.get("inquiryId");
 
@@ -32,6 +35,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const parsed = CreateResponseSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 

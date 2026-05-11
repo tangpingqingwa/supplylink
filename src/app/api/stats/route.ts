@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/db/prisma";
 
 export async function GET() {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 

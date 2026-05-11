@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus } from "lucide-react";
+import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus, Download } from "lucide-react";
 import Link from "next/link";
 import { RecordResponseModal } from "@/components/responses/RecordResponseModal";
 
@@ -114,17 +114,27 @@ export default function InquiryDetailPage() {
             <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{inquiry.items.length} 个供应商</span>
           </div>
         </div>
-        {canSend && (
-          <button onClick={sendInquiry} disabled={sending} style={{
+        <div style={{ display: "flex", gap: 10 }}>
+          <a href={`/api/inquiries/${id}/export`} download style={{
             display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
-            borderRadius: 8, background: "var(--accent)", border: "none",
-            color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-            opacity: sending ? 0.7 : 1,
+            borderRadius: 8, background: "transparent",
+            border: "1.5px solid var(--accent)", color: "var(--accent)",
+            fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", textDecoration: "none",
           }}>
-            {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            {inquiry.status === "PARTIAL" ? "重试失败项" : "发送询盘"}
-          </button>
-        )}
+            <Download size={14} />导出报价单
+          </a>
+          {canSend && (
+            <button onClick={sendInquiry} disabled={sending} style={{
+              display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
+              borderRadius: 8, background: "var(--accent)", border: "none",
+              color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+              opacity: sending ? 0.7 : 1,
+            }}>
+              {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              {inquiry.status === "PARTIAL" ? "重试失败项" : "发送询盘"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stat chips */}

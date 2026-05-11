@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
+import { requireAuth } from "@/lib/api-auth";
 
 const UpdateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -12,6 +13,8 @@ const UpdateSchema = z.object({
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const { id } = await params;
   const supplier = await prisma.supplier.findUnique({
     where: { id },
@@ -22,6 +25,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const { id } = await params;
   const body = await req.json();
   const parsed = UpdateSchema.safeParse(body);
@@ -31,6 +36,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const { id } = await params;
   await prisma.supplier.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });

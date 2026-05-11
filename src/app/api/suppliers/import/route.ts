@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { requireAuth } from "@/lib/api-auth";
 
 const ChannelSchema = z.object({
   type:    z.enum(["EMAIL", "WHATSAPP", "ALI1688", "FORM"]),
@@ -21,6 +22,8 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const parsed = BodySchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 

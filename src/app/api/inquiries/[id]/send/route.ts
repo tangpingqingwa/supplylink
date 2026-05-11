@@ -3,8 +3,11 @@ import { prisma } from "@/lib/db/prisma";
 import { renderTemplate } from "@/lib/template";
 import { sendEmail } from "@/lib/senders/email";
 import { sendWhatsApp } from "@/lib/senders/whatsapp";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const { id } = await params;
 
   const inquiry = await prisma.inquiry.findUnique({

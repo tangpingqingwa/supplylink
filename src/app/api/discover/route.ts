@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { z } from "zod";
 import { discoverSuppliers } from "@/lib/search/discover";
 import { prisma } from "@/lib/db/prisma";
@@ -9,6 +10,8 @@ const Schema = z.object({
 });
 
 export async function POST(req: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 

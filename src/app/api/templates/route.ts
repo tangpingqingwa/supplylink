@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/db/prisma";
 import { z } from "zod";
 
@@ -13,11 +14,15 @@ const CreateTemplateSchema = z.object({
 });
 
 export async function GET() {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const templates = await prisma.template.findMany({ orderBy: { createdAt: "desc" } });
   return NextResponse.json(templates);
 }
 
 export async function POST(req: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const body = await req.json();
   const parsed = CreateTemplateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

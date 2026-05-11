@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { requireAuth } from "@/lib/api-auth";
 
 const ALLOWED_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from",
   "twilio_account_sid", "twilio_auth_token", "twilio_whatsapp_from"];
 
 export async function GET() {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const rows = await prisma.setting.findMany({
     where: { key: { in: ALLOWED_KEYS } },
   });
@@ -19,6 +22,8 @@ export async function GET() {
 const Schema = z.record(z.string(), z.string());
 
 export async function POST(req: Request) {
+  const authError = await requireAuth();
+  if (authError) return authError;
   const body = Schema.safeParse(await req.json());
   if (!body.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
 
