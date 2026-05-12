@@ -48,7 +48,9 @@ services:
       NODE_ENV: production
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_API_BASE_URL: ${AI_API_BASE_URL:-https://sub.muxing.cfd}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-5.5}
     depends_on:
       migrate:
         condition: service_completed_successfully

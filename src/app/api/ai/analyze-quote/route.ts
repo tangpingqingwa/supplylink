@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
 
 const Schema = z.object({
   rawContent: z.string().min(1).max(8000),
@@ -24,24 +23,39 @@ export async function POST(req: Request) {
   const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "未配置 ANTHROPIC_API_KEY" }, { status: 503 });
+  const apiKey  = process.env.AI_API_KEY;
+  const baseUrl = process.env.AI_API_BASE_URL ?? "https://sub.muxing.cfd";
+  const model   = process.env.AI_MODEL ?? "gpt-5.5";
 
-  const client = new Anthropic({ apiKey });
+  if (!apiKey) return NextResponse.json({ error: "未配置 AI_API_KEY" }, { status: 503 });
 
   try {
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 256,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: parsed.data.rawContent }],
+    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 256,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user",   content: parsed.data.rawContent },
+        ],
+      }),
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text.trim() : "";
+    if (!res.ok) {
+      const err = await res.text();
+      return NextResponse.json({ error: `AI 服务错误: ${res.status} ${err.slice(0, 200)}` }, { status: 502 });
+    }
+
+    const json = await res.json();
+    const text: string = json.choices?.[0]?.message?.content?.trim() ?? "";
 
     let extracted: Record<string, unknown> = {};
     try {
-      // Strip potential markdown code fences if Claude wraps the JSON
       const jsonStr = text.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
       extracted = JSON.parse(jsonStr);
     } catch {
@@ -51,12 +65,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       unitPrice:    typeof extracted.unitPrice    === "number" ? extracted.unitPrice    : undefined,
       currency:     typeof extracted.currency     === "string" ? extracted.currency     : undefined,
-      moq:          typeof extracted.moq          === "number" ? Math.round(extracted.moq as number) : undefined,
+      moq:          typeof extracted.moq          === "number" ? Math.round(extracted.moq as number)          : undefined,
       leadTimeDays: typeof extracted.leadTimeDays === "number" ? Math.round(extracted.leadTimeDays as number) : undefined,
       notes:        typeof extracted.notes        === "string" ? extracted.notes        : undefined,
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "AI 服务异常";
+    const msg = err instanceof Error ? err.message : "网络错误";
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }
