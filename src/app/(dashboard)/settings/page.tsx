@@ -190,7 +190,14 @@ export default function SettingsPage() {
               <Input label="Auth Token" type="password" placeholder="••••••••••••" value={twilio.token} onChange={e => setTwilio(s => ({ ...s, token: e.target.value }))} />
               <Input label="From Number" placeholder="+14155238886" value={twilio.from} onChange={e => setTwilio(s => ({ ...s, from: e.target.value }))} />
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "center" }}>
+            <div style={{ marginTop: 16, padding: "12px 14px", background: "var(--bg-elevated)", borderRadius: 8, border: "1px solid var(--border-subtle)" }}>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 6, fontWeight: 500 }}>WhatsApp 回复 Webhook URL</p>
+              <p style={{ fontSize: 11.5, color: "var(--text-muted)", marginBottom: 8 }}>在 Twilio 控制台 → Messaging → WhatsApp Senders → 你的号码 → 「When a message comes in」填入以下地址：</p>
+              <code style={{ fontSize: 12, color: "var(--accent)", wordBreak: "break-all", userSelect: "all" }}>
+                {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/twilio` : "https://your-domain.com/api/webhooks/twilio"}
+              </code>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "center" }}>
               <button onClick={saveTwilio} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--accent)", color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
                 {saving ? <Loader2 size={14} className="animate-spin" /> : null}保存设置
               </button>

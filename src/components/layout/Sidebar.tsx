@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
-  LayoutDashboard, Users, FileText, Send, MessageSquare, Settings, Zap, Compass, LogOut,
+  LayoutDashboard, Users, FileText, Send, MessageSquare, Settings, Zap, Compass, LogOut, BarChart2,
 } from "lucide-react";
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/templates",  icon: FileText,        label: "询盘模板" },
   { href: "/inquiries",  icon: Send,            label: "批量询盘" },
   { href: "/responses",  icon: MessageSquare,   label: "回复报价" },
+  { href: "/analytics",  icon: BarChart2,       label: "数据分析" },
   { href: "/settings",   icon: Settings,        label: "设置" },
 ];
 
