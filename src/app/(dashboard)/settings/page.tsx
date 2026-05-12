@@ -35,6 +35,8 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("email");
   const [smtp, setSmtp] = useState({ host: "", port: "587", user: "", pass: "", from: "" });
   const [twilio, setTwilio] = useState({ sid: "", token: "", from: "" });
+  const [imap, setImap] = useState({ host: "", port: "993", user: "", pass: "" });
+  const [imapEnabled, setImapEnabled] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<"ok" | "fail" | null>(null);
   const [channelEnabled, setChannelEnabled] = useState<Record<string, boolean>>({ email: false, whatsapp: false, ali1688: false, form: false });
@@ -45,6 +47,8 @@ export default function SettingsPage() {
     fetch("/api/settings").then(r => r.json()).then(d => {
       if (d.smtp_host) setSmtp({ host: d.smtp_host, port: d.smtp_port || "587", user: d.smtp_user || "", pass: d.smtp_pass || "", from: d.smtp_from || "" });
       if (d.twilio_account_sid) setTwilio({ sid: d.twilio_account_sid, token: d.twilio_auth_token || "", from: d.twilio_whatsapp_from || "" });
+      if (d.imap_host) setImap({ host: d.imap_host, port: d.imap_port || "993", user: d.imap_user || "", pass: d.imap_pass || "" });
+      setImapEnabled(d.imap_enabled === "1");
       setChannelEnabled({
         email:    d.email_enabled === "1",
         whatsapp: d.whatsapp_enabled === "1",
@@ -90,6 +94,21 @@ export default function SettingsPage() {
     });
     setSaving(false);
     setSaveMsg("已保存");
+    setTimeout(() => setSaveMsg(""), 3000);
+  };
+
+  const saveImap = async () => {
+    setSaving(true); setSaveMsg("");
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        imap_host: imap.host, imap_port: imap.port, imap_user: imap.user,
+        imap_enabled: imapEnabled ? "1" : "0",
+        ...(imap.pass && imap.pass !== "••••••••" ? { imap_pass: imap.pass } : {}),
+      }),
+    });
+    setSaving(false); setSaveMsg("已保存");
     setTimeout(() => setSaveMsg(""), 3000);
   };
 
@@ -173,6 +192,34 @@ export default function SettingsPage() {
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "center" }}>
               <button onClick={saveTwilio} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--accent)", color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
+                {saving ? <Loader2 size={14} className="animate-spin" /> : null}保存设置
+              </button>
+              {saveMsg && <span style={{ fontSize: 12.5, color: "#3fb950" }}>{saveMsg}</span>}
+            </div>
+          </div>
+
+          {/* IMAP 收件 */}
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, padding: "20px 24px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>IMAP 自动收件</h2>
+                <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 3 }}>自动轮询收件箱，识别供应商回复并录入报价</p>
+              </div>
+              <Toggle on={imapEnabled} onChange={async v => {
+                setImapEnabled(v);
+                await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imap_enabled: v ? "1" : "0" }) });
+              }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 12 }}>
+                <Input label="IMAP Host" placeholder="imap.gmail.com" value={imap.host} onChange={e => setImap(s => ({ ...s, host: e.target.value }))} />
+                <Input label="Port" placeholder="993" value={imap.port} onChange={e => setImap(s => ({ ...s, port: e.target.value }))} />
+              </div>
+              <Input label="Username" placeholder="your@email.com" value={imap.user} onChange={e => setImap(s => ({ ...s, user: e.target.value }))} />
+              <Input label="Password / App Password" type="password" placeholder="••••••••••••" value={imap.pass} onChange={e => setImap(s => ({ ...s, pass: e.target.value }))} />
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "center" }}>
+              <button onClick={saveImap} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--accent)", color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
                 {saving ? <Loader2 size={14} className="animate-spin" /> : null}保存设置
               </button>
               {saveMsg && <span style={{ fontSize: 12.5, color: "#3fb950" }}>{saveMsg}</span>}

@@ -1,20 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { z } from "zod";
+import { analyzeQuoteText } from "@/lib/ai-analyze";
 
 const Schema = z.object({
   rawContent: z.string().min(1).max(8000),
 });
-
-const SYSTEM_PROMPT = `你是一个采购报价解析助手。从供应商回复文本中提取以下字段：
-- unitPrice: 单件价格（数字，无货币符号）
-- currency: 货币代码（CNY/USD/EUR/HKD，默认 CNY）
-- moq: 最小起订量（整数，单位 pcs）
-- leadTimeDays: 交期天数（整数）
-- notes: 其他重要信息（认证、付款条件、运输方式等，简短中文，100字以内）
-
-以 JSON 格式返回，无法确定的字段省略，不要包含任何其他文字或 markdown。
-示例：{"unitPrice":8.5,"currency":"USD","moq":3000,"leadTimeDays":25,"notes":"T/T 30% 定金，FOB 深圳"}`;
 
 export async function POST(req: Request) {
   const authError = await requireAuth();
@@ -23,54 +14,14 @@ export async function POST(req: Request) {
   const parsed = Schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const apiKey  = process.env.AI_API_KEY;
-  const baseUrl = process.env.AI_API_BASE_URL ?? "https://sub.muxing.cfd";
-  const model   = process.env.AI_MODEL ?? "gpt-5.5";
-
-  if (!apiKey) return NextResponse.json({ error: "未配置 AI_API_KEY" }, { status: 503 });
+  if (!process.env.AI_API_KEY) return NextResponse.json({ error: "未配置 AI_API_KEY" }, { status: 503 });
 
   try {
-    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 256,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user",   content: parsed.data.rawContent },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      return NextResponse.json({ error: `AI 服务错误: ${res.status} ${err.slice(0, 200)}` }, { status: 502 });
-    }
-
-    const json = await res.json();
-    const text: string = json.choices?.[0]?.message?.content?.trim() ?? "";
-
-    let extracted: Record<string, unknown> = {};
-    try {
-      const jsonStr = text.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
-      extracted = JSON.parse(jsonStr);
-    } catch {
-      return NextResponse.json({ error: "AI 返回格式异常，请重试" }, { status: 502 });
-    }
-
-    return NextResponse.json({
-      unitPrice:    typeof extracted.unitPrice    === "number" ? extracted.unitPrice    : undefined,
-      currency:     typeof extracted.currency     === "string" ? extracted.currency     : undefined,
-      moq:          typeof extracted.moq          === "number" ? Math.round(extracted.moq as number)          : undefined,
-      leadTimeDays: typeof extracted.leadTimeDays === "number" ? Math.round(extracted.leadTimeDays as number) : undefined,
-      notes:        typeof extracted.notes        === "string" ? extracted.notes        : undefined,
-    });
+    const result = await analyzeQuoteText(parsed.data.rawContent);
+    return NextResponse.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "网络错误";
+    const msg = err instanceof Error ? err.message : "AI 服务异常";
+    if (msg.includes("JSON")) return NextResponse.json({ error: "AI 返回格式异常，请重试" }, { status: 502 });
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

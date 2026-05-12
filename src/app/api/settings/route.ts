@@ -5,7 +5,8 @@ import { requireAuth } from "@/lib/api-auth";
 
 const ALLOWED_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from",
   "twilio_account_sid", "twilio_auth_token", "twilio_whatsapp_from",
-  "email_enabled", "whatsapp_enabled"];
+  "email_enabled", "whatsapp_enabled",
+  "imap_host", "imap_port", "imap_user", "imap_pass", "imap_enabled"];
 
 export async function GET() {
   const authError = await requireAuth();
@@ -17,6 +18,7 @@ export async function GET() {
   // Mask sensitive values
   if (settings.smtp_pass) settings.smtp_pass = "••••••••";
   if (settings.twilio_auth_token) settings.twilio_auth_token = "••••••••";
+  if (settings.imap_pass) settings.imap_pass = "••••••••";
   return NextResponse.json(settings);
 }
 
