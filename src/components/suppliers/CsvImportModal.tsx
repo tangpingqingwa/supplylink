@@ -10,12 +10,15 @@ interface Props {
 }
 
 const REQUIRED_FIELDS = [
-  { key: "name",      label: "供应商名称", required: true  },
-  { key: "company",   label: "公司",       required: false },
-  { key: "email",     label: "邮箱",       required: false },
-  { key: "whatsapp",  label: "WhatsApp",   required: false },
-  { key: "website",   label: "网址",       required: false },
-  { key: "notes",     label: "备注",       required: false },
+  { key: "name",      label: "供应商名称",  required: true  },
+  { key: "company",   label: "公司",        required: false },
+  { key: "email",     label: "邮箱",        required: false },
+  { key: "whatsapp",  label: "WhatsApp",    required: false },
+  { key: "wechat",    label: "微信",        required: false },
+  { key: "phone",     label: "手机/短信",   required: false },
+  { key: "ali1688",   label: "1688 链接",   required: false },
+  { key: "website",   label: "网址",        required: false },
+  { key: "notes",     label: "备注",        required: false },
 ];
 
 type Row = Record<string, string>;
@@ -26,7 +29,10 @@ function guessMapping(headers: string[]): Record<string, string> {
     name:     /名称|name|supplier|供应商|公司名/i,
     company:  /公司|company|firm/i,
     email:    /邮|email|mail/i,
-    whatsapp: /whatsapp|wa|电话|phone|手机/i,
+    whatsapp: /whatsapp|wa/i,
+    wechat:   /微信|wechat|weixin/i,
+    phone:    /手机|mobile|sms|短信|tel$/i,
+    ali1688:  /1688|阿里巴巴国内|ali1688/i,
     website:  /网址|url|site|web|官网/i,
     notes:    /备注|note|remark|comment/i,
   };
@@ -83,12 +89,12 @@ export function CsvImportModal({ onClose, onImported }: Props) {
 
     const suppliers = rows.map(row => {
       const channels = [];
-      if (mapping.email && row[mapping.email])
-        channels.push({ type: "EMAIL", value: row[mapping.email].trim(), primary: true });
-      if (mapping.whatsapp && row[mapping.whatsapp])
-        channels.push({ type: "WHATSAPP", value: row[mapping.whatsapp].trim(), primary: !channels.length });
-      if (mapping.website && row[mapping.website])
-        channels.push({ type: "FORM", value: row[mapping.website].trim(), primary: !channels.length });
+      if (mapping.email    && row[mapping.email])    channels.push({ type: "EMAIL",    value: row[mapping.email].trim(),    primary: !channels.length });
+      if (mapping.whatsapp && row[mapping.whatsapp]) channels.push({ type: "WHATSAPP", value: row[mapping.whatsapp].trim(), primary: !channels.length });
+      if (mapping.wechat   && row[mapping.wechat])   channels.push({ type: "WECHAT",   value: row[mapping.wechat].trim(),   primary: !channels.length });
+      if (mapping.phone    && row[mapping.phone])    channels.push({ type: "SMS",      value: row[mapping.phone].trim(),    primary: !channels.length });
+      if (mapping.ali1688  && row[mapping.ali1688])  channels.push({ type: "ALI1688",  value: row[mapping.ali1688].trim(),  primary: !channels.length });
+      if (mapping.website  && row[mapping.website])  channels.push({ type: "FORM",     value: row[mapping.website].trim(),  primary: !channels.length });
       return {
         name:    row[mapping.name]?.trim() ?? "",
         company: mapping.company ? row[mapping.company]?.trim() : undefined,

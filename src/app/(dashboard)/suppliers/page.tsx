@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Search, Trash2, Pencil, Users, SlidersHorizontal, Upload } from "lucide-react";
 import { SupplierDrawer } from "@/components/suppliers/SupplierDrawer";
 import { CsvImportModal } from "@/components/suppliers/CsvImportModal";
@@ -10,6 +11,8 @@ const CHANNEL_STYLE: Record<string, { bg: string; color: string; label: string }
   WHATSAPP: { bg: "rgba(63,185,80,0.12)",   color: "#4ade80", label: "WhatsApp" },
   ALI1688:  { bg: "rgba(210,153,34,0.12)",  color: "#fbbf24", label: "1688"     },
   FORM:     { bg: "rgba(163,113,247,0.12)", color: "#c4b5fd", label: "表单"     },
+  SMS:      { bg: "rgba(14,165,233,0.12)",  color: "#38bdf8", label: "短信"     },
+  WECHAT:   { bg: "rgba(7,193,96,0.12)",    color: "#34d058", label: "微信"     },
 };
 
 const AVATAR_COLORS = [
@@ -30,6 +33,7 @@ interface Supplier {
 }
 
 export default function SuppliersPage() {
+  const router = useRouter();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -181,7 +185,7 @@ export default function SuppliersPage() {
                     <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)}
                       style={{ cursor: "pointer", accentColor: "var(--accent)" }} />
                   </td>
-                  <td style={{ padding: "12px 16px" }}>
+                  <td style={{ padding: "12px 16px", cursor: "pointer" }} onClick={() => router.push(`/suppliers/${s.id}`)}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{
                         width: 34, height: 34, borderRadius: 9, flexShrink: 0,

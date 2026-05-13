@@ -21,7 +21,7 @@ export async function GET() {
   });
   const avgReplyHours = repliedWithTimes.length > 0
     ? Math.round(
-        repliedWithTimes.reduce((sum, r) => {
+        repliedWithTimes.reduce((sum: number, r: { sentAt: Date | null; repliedAt: Date | null }) => {
           const diff = (r.repliedAt!.getTime() - r.sentAt!.getTime()) / (1000 * 60 * 60);
           return sum + diff;
         }, 0) / repliedWithTimes.length
@@ -45,14 +45,17 @@ export async function GET() {
     take: 100,
   });
 
-  const leaderboard = allSuppliers
+  type SItem = { status: string; response: { unitPrice: number | null; leadTimeDays: number | null } | null };
+  type SRow  = { id: string; name: string; inquiryItems: SItem[] };
+  const leaderboard = (allSuppliers as SRow[])
     .map(s => {
-      const sent = s.inquiryItems.filter(i => ["SENT", "REPLIED"].includes(i.status)).length;
-      const replied = s.inquiryItems.filter(i => i.status === "REPLIED").length;
-      const prices = s.inquiryItems
+      const items = s.inquiryItems;
+      const sent = items.filter(i => ["SENT", "REPLIED"].includes(i.status)).length;
+      const replied = items.filter(i => i.status === "REPLIED").length;
+      const prices = items
         .map(i => i.response?.unitPrice)
         .filter((p): p is number => p != null);
-      const leadTimes = s.inquiryItems
+      const leadTimes = items
         .map(i => i.response?.leadTimeDays)
         .filter((l): l is number => l != null);
       return {

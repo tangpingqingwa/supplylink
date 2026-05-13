@@ -18,7 +18,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const supplier = await prisma.supplier.findUnique({
     where: { id },
-    include: { channels: true },
+    include: {
+      channels: true,
+      inquiryItems: {
+        include: {
+          inquiry: { select: { id: true, name: true, sentAt: true } },
+          response: { select: { unitPrice: true, currency: true, moq: true, leadTimeDays: true, notes: true, receivedAt: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      },
+    },
   });
   if (!supplier) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(supplier);
