@@ -1,3 +1,39 @@
+function isEnglish(text: string): boolean {
+  // True if >60% of letter characters are ASCII
+  const letters = text.replace(/[^a-zA-Z一-鿿]/g, "");
+  if (!letters.length) return false;
+  const ascii = text.replace(/[^a-zA-Z]/g, "").length;
+  return ascii / letters.length > 0.6;
+}
+
+async function translateToZh(keyword: string): Promise<string> {
+  const apiKey  = process.env.AI_API_KEY;
+  const baseUrl = process.env.AI_API_BASE_URL ?? "https://sub.muxing.cfd";
+  const model   = process.env.AI_MODEL ?? "gpt-5.5";
+  if (!apiKey) return keyword;
+
+  try {
+    const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        max_tokens: 60,
+        messages: [
+          { role: "system", content: "将用户输入的产品名翻译成中文，只返回中文译名，不要解释。" },
+          { role: "user", content: keyword },
+        ],
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+    const data = await res.json();
+    const translated = data.choices?.[0]?.message?.content?.trim();
+    return translated && translated.length < 40 ? translated : keyword;
+  } catch {
+    return keyword;
+  }
+}
+
 export interface SupplierCandidate {
   id: string;
   name: string;
@@ -36,7 +72,8 @@ function extractTags(name: string, desc: string): string[] {
 
 // Bing China — accessible in mainland China without VPN
 async function searchBingCN(keyword: string): Promise<SupplierCandidate[]> {
-  const query = `${keyword} 工厂 批发 厂家`;
+  const searchKeyword = isEnglish(keyword) ? await translateToZh(keyword) : keyword;
+  const query = `${searchKeyword} 工厂 批发 厂家`;
   const res = await fetch(
     `https://cn.bing.com/search?q=${encodeURIComponent(query)}&cc=CN&setlang=zh-hans&count=20`,
     {
