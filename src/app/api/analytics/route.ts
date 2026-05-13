@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/db/prisma";
+import { ChannelType } from "@prisma/client";
+
+const CHANNEL_LABELS: Record<string, string> = {
+  EMAIL: "邮件", WHATSAPP: "WhatsApp", ALI1688: "1688",
+  FORM: "表单", SMS: "短信", WECHAT: "微信",
+};
 
 export async function GET() {
   const authError = await requireAuth();
@@ -95,18 +101,29 @@ export async function GET() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, v]) => ({ month, ...v }));
 
-  // ── Channel comparison ──────────────────────────────────────────────────────
-  const [emailSent, emailReplied, waSent, waReplied] = await Promise.all([
-    prisma.inquiryItem.count({ where: { channel: "EMAIL", status: { in: ["SENT", "REPLIED"] } } }),
-    prisma.inquiryItem.count({ where: { channel: "EMAIL", status: "REPLIED" } }),
-    prisma.inquiryItem.count({ where: { channel: "WHATSAPP", status: { in: ["SENT", "REPLIED"] } } }),
-    prisma.inquiryItem.count({ where: { channel: "WHATSAPP", status: "REPLIED" } }),
-  ]);
+  // ── Channel comparison (dynamic — all channels with data) ──────────────────
+  const channelGroups = await prisma.inquiryItem.groupBy({
+    by: ["channel"],
+    where: { status: { in: ["SENT", "REPLIED"] } },
+    _count: { id: true },
+  });
+  const allChannels = channelGroups.map((g: { channel: ChannelType }) => g.channel);
 
-  const channelComparison = [
-    { channel: "EMAIL",    label: "Email",    sent: emailSent, replied: emailReplied, replyRate: emailSent > 0 ? Math.round((emailReplied / emailSent) * 100) : 0 },
-    { channel: "WHATSAPP", label: "WhatsApp", sent: waSent,    replied: waReplied,    replyRate: waSent > 0    ? Math.round((waReplied    / waSent)    * 100) : 0 },
-  ];
+  const channelComparison = await Promise.all(
+    allChannels.map(async (channel: ChannelType) => {
+      const [sent, replied] = await Promise.all([
+        prisma.inquiryItem.count({ where: { channel, status: { in: ["SENT", "REPLIED"] } } }),
+        prisma.inquiryItem.count({ where: { channel, status: "REPLIED" } }),
+      ]);
+      return {
+        channel,
+        label: CHANNEL_LABELS[channel] ?? channel,
+        sent,
+        replied,
+        replyRate: sent > 0 ? Math.round((replied / sent) * 100) : 0,
+      };
+    })
+  );
 
   return NextResponse.json({
     overview: { totalInquiries, totalItems, repliedItems, suppliers, avgReplyHours, replyRate: totalItems > 0 ? Math.round((repliedItems / totalItems) * 100) : 0 },

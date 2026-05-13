@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Plus, MessageSquare, Pencil, Trophy } from "lucide-react";
+import Link from "next/link";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input, Textarea } from "@/components/ui/Input";
 import { RecordResponseModal } from "@/components/responses/RecordResponseModal";
@@ -20,6 +21,8 @@ const CH_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   WHATSAPP: { bg: "rgba(63,185,80,0.12)",   color: "#4ade80", label: "WhatsApp" },
   ALI1688:  { bg: "rgba(210,153,34,0.12)",  color: "#fbbf24", label: "1688"     },
   FORM:     { bg: "rgba(163,113,247,0.12)", color: "#c4b5fd", label: "表单"     },
+  SMS:      { bg: "rgba(14,165,233,0.12)",  color: "#38bdf8", label: "短信"     },
+  WECHAT:   { bg: "rgba(7,193,96,0.12)",    color: "#34d058", label: "微信"     },
 };
 
 interface Response {
@@ -212,13 +215,13 @@ export default function ResponsesPage() {
                                 transition: "background 0.1s",
                               }}>
                               <td style={{ padding: "12px 16px" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <Link href={`/suppliers/${r.inquiryItem.supplier.id}`} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
                                   <div style={{ width: 30, height: 30, borderRadius: 8, background: av.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: av.color, flexShrink: 0 }}>{av.char}</div>
                                   <div>
                                     <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-primary)" }}>{r.inquiryItem.supplier.name}</div>
                                     {r.inquiryItem.supplier.company && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{r.inquiryItem.supplier.company}</div>}
                                   </div>
-                                </div>
+                                </Link>
                               </td>
                               <td style={{ padding: "12px 16px" }}>
                                 {ch && <span style={{ display: "inline-flex", padding: "2px 9px", borderRadius: 99, fontSize: 11.5, fontWeight: 500, background: ch.bg, color: ch.color }}>{ch.label}</span>}

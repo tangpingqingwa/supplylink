@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { extractVariables, renderTemplate } from "@/lib/template";
 
-const CHANNELS = ["EMAIL", "WHATSAPP", "ALI1688", "FORM"] as const;
+const CHANNELS = ["EMAIL", "WHATSAPP", "ALI1688", "FORM", "SMS", "WECHAT"] as const;
 
 interface Template { id: string; name: string; body: string; subject?: string; channels: string[] }
 interface Supplier { id: string; name: string; company?: string; channels: { type: string }[] }
@@ -26,6 +26,7 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set(["EMAIL"]));
   const [name, setName] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
+  const [filterByChannel, setFilterByChannel] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,6 +50,10 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
 
   const toggleChannel = (ch: string) =>
     setSelectedChannels((p) => { const n = new Set(p); n.has(ch) ? n.delete(ch) : n.add(ch); return n; });
+
+  const filteredSuppliers = filterByChannel && selectedChannels.size > 0
+    ? suppliers.filter(s => s.channels.some(ch => selectedChannels.has(ch.type)))
+    : suppliers;
 
   const canNext = [
     !!selectedTemplate,
@@ -82,7 +87,8 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
 
   const handleClose = () => {
     setStep(0); setSelectedTemplate(null); setVariables({});
-    setSelectedSuppliers(new Set()); setName(""); setScheduledAt(""); onClose();
+    setSelectedSuppliers(new Set()); setSelectedChannels(new Set(["EMAIL"]));
+    setFilterByChannel(true); setName(""); setScheduledAt(""); onClose();
   };
 
   if (!open) return null;
@@ -157,7 +163,7 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
           {/* Step 2: 选供应商 */}
           {step === 2 && (
             <div>
-              <div className="flex gap-2 flex-wrap mb-4">
+              <div className="flex gap-2 flex-wrap mb-3">
                 {CHANNELS.map((ch) => (
                   <button key={ch} onClick={() => toggleChannel(ch)}
                     className="cursor-pointer transition-opacity hover:opacity-80"
@@ -167,17 +173,23 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
                 ))}
               </div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                  已选 {selectedSuppliers.size} / {suppliers.length}
-                </span>
+                <button onClick={() => setFilterByChannel(f => !f)}
+                  className="text-xs cursor-pointer hover:opacity-70 flex items-center gap-1.5"
+                  style={{ color: filterByChannel ? "var(--accent)" : "var(--text-muted)" }}>
+                  <span style={{ width: 28, height: 15, borderRadius: 99, background: filterByChannel ? "var(--accent)" : "var(--border)", display: "inline-flex", alignItems: "center", padding: "0 2px", transition: "background 0.2s" }}>
+                    <span style={{ width: 11, height: 11, borderRadius: 99, background: "white", transform: filterByChannel ? "translateX(13px)" : "translateX(0)", transition: "transform 0.2s", display: "block" }} />
+                  </span>
+                  仅显示含选中渠道的供应商（{filteredSuppliers.length} 家）
+                </button>
                 <button onClick={() => setSelectedSuppliers(
-                  selectedSuppliers.size === suppliers.length ? new Set() : new Set(suppliers.map((s) => s.id))
+                  selectedSuppliers.size === filteredSuppliers.length ? new Set() : new Set(filteredSuppliers.map((s) => s.id))
                 )} className="text-xs cursor-pointer hover:opacity-70" style={{ color: "var(--accent)" }}>
-                  {selectedSuppliers.size === suppliers.length ? "取消全选" : "全选"}
+                  {selectedSuppliers.size === filteredSuppliers.length && filteredSuppliers.length > 0 ? "取消全选" : "全选"}
                 </button>
               </div>
+              <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>已选 {selectedSuppliers.size} / {filteredSuppliers.length}</p>
               <div className="space-y-1">
-                {suppliers.map((s) => (
+                {filteredSuppliers.map((s) => (
                   <div key={s.id} onClick={() => toggleSupplier(s.id)}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors"
                     style={{
@@ -192,6 +204,11 @@ export function NewInquiryWizard({ open, onClose, onSaved }: Props) {
                     <div className="flex gap-1">{s.channels.map((ch, i) => <Badge key={i} value={ch.type} />)}</div>
                   </div>
                 ))}
+                {filteredSuppliers.length === 0 && (
+                  <p className="text-sm py-4 text-center" style={{ color: "var(--text-muted)" }}>
+                    没有含选中渠道的供应商
+                  </p>
+                )}
               </div>
             </div>
           )}

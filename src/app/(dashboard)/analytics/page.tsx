@@ -103,6 +103,11 @@ export default function AnalyticsPage() {
   const { overview, leaderboard, monthlyTrend, channelComparison } = data;
   const maxMonthSent = Math.max(...monthlyTrend.map(m => m.sent), 1);
 
+  const CHANNEL_COLORS: Record<string, string> = {
+    EMAIL: "#2563eb", WHATSAPP: "#25a244", ALI1688: "#d4a017",
+    FORM: "#7c3aed", SMS: "#0ea5e9", WECHAT: "#07c160",
+  };
+
   return (
     <div style={{ padding: "28px 32px", maxWidth: 900 }}>
       <div style={{ marginBottom: 24 }}>
@@ -156,11 +161,11 @@ export default function AnalyticsPage() {
                   <div style={{
                     width: `${ch.replyRate}%`,
                     height: "100%", borderRadius: 99,
-                    background: ch.channel === "EMAIL" ? "#2563eb" : "#25a244",
+                    background: CHANNEL_COLORS[ch.channel] ?? "#6b7280",
                     transition: "width 0.6s ease",
                   }} />
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4, fontSize: 12, fontWeight: 600, color: ch.channel === "EMAIL" ? "#2563eb" : "#25a244" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4, fontSize: 12, fontWeight: 600, color: CHANNEL_COLORS[ch.channel] ?? "#6b7280" }}>
                   {ch.replyRate}% 回复率
                 </div>
               </div>
