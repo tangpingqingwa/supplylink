@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, MessageSquare, Pencil, Trophy, Download } from "lucide-react";
+import { Plus, MessageSquare, Pencil, Trophy, Download, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -39,11 +39,32 @@ function RecordDrawer({ open, onClose, onSaved }: { open: boolean; onClose: () =
   const [items, setItems] = useState<{ id: string; channel: string; supplier: { name: string } }[]>([]);
   const [form, setForm] = useState({ inquiryItemId: "", rawContent: "", unitPrice: "", currency: "CNY", moq: "", leadTimeDays: "", notes: "" });
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     fetch("/api/inquiries/items").then(r => r.json()).then(setItems).catch(() => {});
   }, [open]);
+
+  const analyze = async () => {
+    if (!form.rawContent) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/ai/analyze-quote", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawContent: form.rawContent }),
+      });
+      const data = await res.json();
+      setForm(f => ({
+        ...f,
+        unitPrice:    data.unitPrice    != null ? String(data.unitPrice)    : f.unitPrice,
+        currency:     data.currency     ?? f.currency,
+        moq:          data.moq          != null ? String(data.moq)          : f.moq,
+        leadTimeDays: data.leadTimeDays != null ? String(data.leadTimeDays) : f.leadTimeDays,
+        notes:        data.notes        ?? f.notes,
+      }));
+    } finally { setAnalyzing(false); }
+  };
 
   const save = async () => {
     if (!form.inquiryItemId || !form.rawContent) return;
@@ -78,6 +99,11 @@ function RecordDrawer({ open, onClose, onSaved }: { open: boolean; onClose: () =
         </div>
         <Textarea label="回复原文" placeholder="粘贴供应商的原始回复内容" value={form.rawContent}
           onChange={e => setForm(f => ({ ...f, rawContent: e.target.value }))} rows={4} />
+        <button onClick={analyze} disabled={!form.rawContent || analyzing}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 32, padding: "0 14px", borderRadius: 7, fontSize: 12.5, fontWeight: 500, cursor: form.rawContent && !analyzing ? "pointer" : "default", fontFamily: "inherit", border: "1px solid rgba(124,58,237,0.35)", background: "rgba(124,58,237,0.07)", color: "#7c3aed", opacity: !form.rawContent || analyzing ? 0.5 : 1, alignSelf: "flex-start" }}>
+          {analyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+          {analyzing ? "AI 解析中..." : "AI 解析"}
+        </button>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Input label="单价" placeholder="12.50" value={form.unitPrice}
             onChange={e => setForm(f => ({ ...f, unitPrice: e.target.value }))} />

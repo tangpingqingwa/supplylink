@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Trash2, Pencil, Users, SlidersHorizontal, Upload } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Users, SlidersHorizontal, Upload, X } from "lucide-react";
 import { SupplierDrawer } from "@/components/suppliers/SupplierDrawer";
 import { CsvImportModal } from "@/components/suppliers/CsvImportModal";
 
@@ -42,6 +42,9 @@ export default function SuppliersPage() {
   const [loading, setLoading] = useState(true);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterChannel, setFilterChannel] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,9 +54,19 @@ export default function SuppliersPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = suppliers.filter((s) =>
-    [s.name, s.company, s.category, s.country].some((v) => v?.toLowerCase().includes(search.toLowerCase()))
-  );
+  const categories = useMemo(() =>
+    [...new Set(suppliers.map(s => s.category).filter(Boolean) as string[])].sort(),
+  [suppliers]);
+
+  const activeFilters = (filterCategory ? 1 : 0) + (filterChannel ? 1 : 0);
+
+  const filtered = suppliers.filter((s) => {
+    const q = search.toLowerCase();
+    const matchSearch = [s.name, s.company, s.category, s.country].some(v => v?.toLowerCase().includes(q));
+    const matchCategory = !filterCategory || s.category === filterCategory;
+    const matchChannel  = !filterChannel  || s.channels.some(c => c.type === filterChannel);
+    return matchSearch && matchCategory && matchChannel;
+  });
 
   const toggleSelect = (id: string) =>
     setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -103,7 +116,7 @@ export default function SuppliersPage() {
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: filterOpen ? 10 : 16 }}>
         <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
           <Search size={14} color="var(--text-muted)" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
           <input value={search} onChange={(e) => setSearch(e.target.value)}
@@ -116,13 +129,18 @@ export default function SuppliersPage() {
             }}
           />
         </div>
-        <button style={{
+        <button onClick={() => setFilterOpen(o => !o)} style={{
           height: 36, padding: "0 14px", borderRadius: 8, cursor: "pointer",
-          background: "var(--bg-surface)", border: "1px solid var(--border)",
-          color: "var(--text-secondary)", fontSize: 13.5, fontFamily: "inherit",
+          background: activeFilters > 0 ? "rgba(37,99,235,0.08)" : "var(--bg-surface)",
+          border: `1px solid ${activeFilters > 0 ? "var(--accent)" : "var(--border)"}`,
+          color: activeFilters > 0 ? "var(--accent)" : "var(--text-secondary)",
+          fontSize: 13.5, fontFamily: "inherit",
           display: "flex", alignItems: "center", gap: 7,
         }}>
           <SlidersHorizontal size={14} />筛选
+          {activeFilters > 0 && (
+            <span style={{ width: 16, height: 16, borderRadius: 99, background: "var(--accent)", color: "white", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{activeFilters}</span>
+          )}
         </button>
         {selected.size > 0 && (
           <button onClick={deleteSelected} style={{
@@ -135,6 +153,29 @@ export default function SuppliersPage() {
           </button>
         )}
       </div>
+
+      {/* Filter bar */}
+      {filterOpen && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", flexWrap: "wrap" }}>
+          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+            style={{ height: 32, padding: "0 10px", borderRadius: 7, fontSize: 13, outline: "none", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: filterCategory ? "var(--text-primary)" : "var(--text-muted)", fontFamily: "inherit", cursor: "pointer" }}>
+            <option value="">全部品类</option>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)}
+            style={{ height: 32, padding: "0 10px", borderRadius: 7, fontSize: 13, outline: "none", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: filterChannel ? "var(--text-primary)" : "var(--text-muted)", fontFamily: "inherit", cursor: "pointer" }}>
+            <option value="">全部渠道</option>
+            {Object.entries(CHANNEL_STYLE).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+          {activeFilters > 0 && (
+            <button onClick={() => { setFilterCategory(""); setFilterChannel(""); }}
+              style={{ height: 32, padding: "0 12px", borderRadius: 7, fontSize: 13, display: "flex", alignItems: "center", gap: 5, cursor: "pointer", background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontFamily: "inherit" }}>
+              <X size={12} />清除筛选
+            </button>
+          )}
+          <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: "auto" }}>匹配 {filtered.length} / {suppliers.length} 家</span>
+        </div>
+      )}
 
       {/* Table */}
       <div style={{ flex: 1, background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
