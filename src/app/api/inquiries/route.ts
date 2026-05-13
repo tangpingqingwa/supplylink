@@ -9,7 +9,7 @@ const CreateInquirySchema = z.object({
   templateId: z.string(),
   variables: z.record(z.string(), z.string()),
   supplierIds: z.array(z.string()).min(1),
-  channels: z.array(z.enum(["EMAIL", "WHATSAPP", "ALI1688", "FORM"])).min(1),
+  channels: z.array(z.enum(["EMAIL", "WHATSAPP", "ALI1688", "FORM", "SMS", "WECHAT"])).min(1),
   scheduledAt: z.string().datetime().optional(),
 });
 
@@ -20,6 +20,7 @@ export async function GET() {
     select: {
       id: true, name: true, status: true, createdAt: true, sentAt: true, scheduledAt: true,
       template: { select: { name: true } },
+      winner: { select: { name: true } },
       _count: { select: { items: true } },
     },
     orderBy: { createdAt: "desc" },

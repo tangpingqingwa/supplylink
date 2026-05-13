@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Send, Loader2, Search } from "lucide-react";
+import { Plus, Send, Loader2, Search, Trophy } from "lucide-react";
 import Link from "next/link";
 import { NewInquiryWizard } from "@/components/inquiries/NewInquiryWizard";
 import { formatDistanceToNow } from "date-fns";
@@ -9,7 +9,7 @@ import { zhCN } from "date-fns/locale";
 
 interface Inquiry {
   id: string; name: string; status: string; createdAt: string; sentAt?: string; scheduledAt?: string;
-  template: { name: string }; _count: { items: number };
+  template: { name: string }; winner?: { name: string } | null; _count: { items: number };
 }
 
 const STATUS: Record<string, { label: string; bg: string; color: string; dot: string }> = {
@@ -165,6 +165,11 @@ export default function InquiriesPage() {
                         <span style={{ width: 6, height: 6, borderRadius: 99, background: st.dot, flexShrink: 0 }} />
                         {st.label}
                       </span>
+                      {inq.winner && (
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 500, background: "rgba(245,158,11,0.12)", color: "#D97706" }}>
+                          <Trophy size={9} />{inq.winner.name}
+                        </div>
+                      )}
                       {inq.scheduledAt && inq.status === "DRAFT" && (
                         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
                           {new Date(inq.scheduledAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}

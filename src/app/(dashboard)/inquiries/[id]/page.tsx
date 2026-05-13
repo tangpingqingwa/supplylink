@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus, Download, Copy, ExternalLink, RefreshCw } from "lucide-react";
+import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus, Download, Copy, ExternalLink, RefreshCw, Trophy } from "lucide-react";
 import Link from "next/link";
 import { RecordResponseModal } from "@/components/responses/RecordResponseModal";
 
@@ -15,6 +15,8 @@ interface Item {
 }
 interface Inquiry {
   id: string; name: string; status: string; createdAt: string; sentAt?: string;
+  winnerId?: string; closedAt?: string;
+  winner?: { id: string; name: string } | null;
   variables: Record<string, string>;
   template: { id: string; name: string; body: string };
   items: Item[];
@@ -99,6 +101,15 @@ export default function InquiryDetailPage() {
     finally { setResendingId(null); }
   };
 
+  const selectWinner = async (supplierId: string | null) => {
+    await fetch(`/api/inquiries/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ winnerId: supplierId }),
+    });
+    load();
+  };
+
   if (loading) return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
       <Loader2 size={20} color="var(--text-muted)" className="animate-spin" />
@@ -175,6 +186,17 @@ export default function InquiryDetailPage() {
           </div>
         ))}
       </div>
+
+      {/* Winner banner */}
+      {inquiry.winner && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", marginBottom: 16, borderRadius: 10, background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.2)" }}>
+          <Trophy size={15} color="#16A34A" />
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "#16A34A" }}>中标供应商：{inquiry.winner.name}</span>
+          {inquiry.closedAt && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· 选定于 {new Date(inquiry.closedAt).toLocaleDateString("zh-CN")}</span>}
+          <div style={{ flex: 1 }} />
+          <button onClick={() => selectWinner(null)} style={{ fontSize: 12, color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer", padding: "2px 8px" }}>取消选定</button>
+        </div>
+      )}
 
       {/* Supplier table */}
       <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: 12, overflow: "hidden" }}>
@@ -292,6 +314,21 @@ export default function InquiryDetailPage() {
                         >
                           <Copy size={11} />复制询盘
                         </button>
+                      )}
+                      {/* Winner selection for REPLIED */}
+                      {item.status === "REPLIED" && (
+                        inquiry.winnerId === item.supplier.id ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 6, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", color: "#D97706", fontSize: 12, fontWeight: 600 }}>
+                            <Trophy size={11} />中标
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => selectWinner(item.supplier.id)}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid rgba(22,163,74,0.4)", background: "rgba(22,163,74,0.06)", color: "#16A34A", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                          >
+                            <CheckCircle2 size={11} />选定
+                          </button>
+                        )
                       )}
                       {/* Resend for FAILED */}
                       {item.status === "FAILED" && (
