@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, MessageSquare, Pencil, Trophy } from "lucide-react";
+import { Plus, MessageSquare, Pencil, Trophy, Download } from "lucide-react";
 import Link from "next/link";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -108,6 +108,32 @@ function RecordDrawer({ open, onClose, onSaved }: { open: boolean; onClose: () =
   );
 }
 
+function exportCsv(responses: Response[]) {
+  const headers = ["询盘", "供应商", "公司", "渠道", "单价", "币种", "MOQ", "交期(天)", "备注", "收到时间"];
+  const rows = responses.map(r => [
+    r.inquiryItem.inquiry.name,
+    r.inquiryItem.supplier.name,
+    r.inquiryItem.supplier.company ?? "",
+    CH_STYLE[r.inquiryItem.channel]?.label ?? r.inquiryItem.channel,
+    r.unitPrice ?? "",
+    r.currency ?? "",
+    r.moq ?? "",
+    r.leadTimeDays ?? "",
+    r.notes ?? "",
+    new Date(r.receivedAt).toLocaleString("zh-CN"),
+  ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `报价对比_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ResponsesPage() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,13 +169,24 @@ export default function ResponsesPage() {
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>回复 & 报价</h1>
           <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginTop: 4 }}>汇总供应商回复，横向对比报价</p>
         </div>
-        <button onClick={() => setDrawerOpen(true)} style={{
-          display: "flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
-          borderRadius: 8, background: "var(--accent)", border: "none",
-          color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-        }}>
-          <Plus size={15} strokeWidth={2.5} />录入回复
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {responses.length > 0 && (
+            <button onClick={() => exportCsv(responses)} style={{
+              display: "flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
+              borderRadius: 8, background: "var(--bg-surface)", border: "1px solid var(--border)",
+              color: "var(--text-secondary)", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+            }}>
+              <Download size={14} />导出 CSV
+            </button>
+          )}
+          <button onClick={() => setDrawerOpen(true)} style={{
+            display: "flex", alignItems: "center", gap: 7, height: 36, padding: "0 16px",
+            borderRadius: 8, background: "var(--accent)", border: "none",
+            color: "white", fontSize: 13.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+          }}>
+            <Plus size={15} strokeWidth={2.5} />录入回复
+          </button>
+        </div>
       </div>
 
       {loading ? (

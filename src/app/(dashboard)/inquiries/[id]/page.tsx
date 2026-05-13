@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus, Download, Copy, ExternalLink } from "lucide-react";
+import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus, Download, Copy, ExternalLink, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { RecordResponseModal } from "@/components/responses/RecordResponseModal";
 
@@ -62,6 +62,7 @@ export default function InquiryDetailPage() {
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [recordItem, setRecordItem] = useState<Item | null>(null);
 
   const load = useCallback(async () => {
@@ -84,6 +85,18 @@ export default function InquiryDetailPage() {
       load();
     } catch { alert("发送失败"); }
     finally { setSending(false); }
+  };
+
+  const resendItem = async (itemId: string) => {
+    setResendingId(itemId);
+    try {
+      const res = await fetch(`/api/inquiries/items/${itemId}/resend`, { method: "POST" });
+      const data = await res.json();
+      const ok = data.sent ?? 0;
+      alert(ok > 0 ? "重发成功" : `重发失败：${data.failed ?? 0} 条失败`);
+      load();
+    } catch { alert("重发请求失败"); }
+    finally { setResendingId(null); }
   };
 
   if (loading) return (
@@ -278,6 +291,17 @@ export default function InquiryDetailPage() {
                           style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid #07C160", background: "rgba(7,193,96,0.06)", color: "#07C160", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
                         >
                           <Copy size={11} />复制询盘
+                        </button>
+                      )}
+                      {/* Resend for FAILED */}
+                      {item.status === "FAILED" && (
+                        <button
+                          onClick={() => resendItem(item.id)}
+                          disabled={resendingId === item.id}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid rgba(220,38,38,0.4)", background: "rgba(220,38,38,0.06)", color: "#DC2626", fontSize: 12, cursor: "pointer", fontFamily: "inherit", opacity: resendingId === item.id ? 0.6 : 1 }}
+                        >
+                          {resendingId === item.id ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                          重发
                         </button>
                       )}
                       {/* Record / edit reply */}
