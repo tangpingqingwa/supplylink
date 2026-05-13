@@ -31,10 +31,20 @@ export async function executeInquirySend(inquiryId: string) {
     data: { status: "SENDING", sentAt: new Date() },
   });
 
+  // Channels that require manual sending (no API automation)
+  const MANUAL_CHANNELS = ["ALI1688", "FORM", "WECHAT", "SMS"];
+
   const variables = inquiry.variables as Record<string, string>;
-  const results = { sent: 0, failed: 0 };
+  const results = { sent: 0, failed: 0, ignored: 0 };
 
   for (const item of inquiry.items) {
+    // Manual channels: mark IGNORED (not a failure — user handles it in the detail page)
+    if (MANUAL_CHANNELS.includes(item.channel)) {
+      await prisma.inquiryItem.update({ where: { id: item.id }, data: { status: "IGNORED" } });
+      results.ignored++;
+      continue;
+    }
+
     if (item.channel === "EMAIL" && !emailEnabled) {
       await prisma.inquiryItem.update({ where: { id: item.id }, data: { status: "FAILED", errorMsg: "邮件渠道已禁用" } });
       results.failed++;
@@ -77,5 +87,5 @@ export async function executeInquirySend(inquiryId: string) {
   const finalStatus = results.failed === 0 ? "SENT" : "PARTIAL";
   await prisma.inquiry.update({ where: { id: inquiryId }, data: { status: finalStatus } });
 
-  return { ...results, total: inquiry.items.length };
+  return { ...results, total: inquiry.items.length, manual: results.ignored };
 }

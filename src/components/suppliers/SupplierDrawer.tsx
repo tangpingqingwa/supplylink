@@ -9,11 +9,22 @@ import { Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 
 const CHANNEL_OPTIONS = [
-  { value: "EMAIL", label: "邮件" },
+  { value: "EMAIL",    label: "邮件" },
   { value: "WHATSAPP", label: "WhatsApp" },
-  { value: "ALI1688", label: "1688" },
-  { value: "FORM", label: "表单" },
+  { value: "ALI1688",  label: "1688" },
+  { value: "FORM",     label: "表单" },
+  { value: "SMS",      label: "短信" },
+  { value: "WECHAT",   label: "微信" },
 ];
+
+const CHANNEL_PLACEHOLDER: Record<string, string> = {
+  EMAIL:    "example@factory.com",
+  WHATSAPP: "+86 138...",
+  ALI1688:  "https://shop.1688.com/...",
+  FORM:     "https://...",
+  SMS:      "+86 138...",
+  WECHAT:   "微信号 / 手机号",
+};
 
 const CATEGORY_OPTIONS = [
   { value: "", label: "选择品类" },
@@ -129,7 +140,7 @@ export function SupplierDrawer({ open, onClose, onSaved, initial }: Props) {
                   <input
                     value={ch.value}
                     onChange={(e) => setChannel(i, "value", e.target.value)}
-                    placeholder={ch.type === "EMAIL" ? "example@factory.com" : ch.type === "WHATSAPP" ? "+86 138..." : "https://..."}
+                    placeholder={CHANNEL_PLACEHOLDER[ch.type] ?? "联系方式"}
                     className="h-9 px-3 rounded-lg text-sm w-full outline-none"
                     style={{ background: "var(--bg-elevated)", border: `1px solid ${errors[`ch_${i}`] ? "#ef4444" : "var(--border)"}`, color: "var(--text-primary)" }}
                   />

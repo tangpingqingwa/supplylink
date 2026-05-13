@@ -55,6 +55,8 @@ enum ChannelType {
   WHATSAPP
   ALI1688
   FORM
+  SMS
+  WECHAT
 }
 
 // ─── 询盘模板 ─────────────────────────────────────────────

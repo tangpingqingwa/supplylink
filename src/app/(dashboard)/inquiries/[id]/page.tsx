@@ -1,29 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus, Download } from "lucide-react";
+import { ArrowLeft, Send, Loader2, CheckCircle2, XCircle, Clock, Mail, MessageSquare, Plus, Download, Copy, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { RecordResponseModal } from "@/components/responses/RecordResponseModal";
 
 interface Response { id: string; unitPrice?: number; currency?: string; moq?: number; leadTimeDays?: number; rawContent: string; notes?: string; receivedAt: string; }
+interface SupplierChannel { type: string; value: string; }
 interface Item {
   id: string; channel: string; status: string; sentAt?: string; errorMsg?: string;
-  supplier: { id: string; name: string; company?: string };
+  supplier: { id: string; name: string; company?: string; channels: SupplierChannel[] };
   response: Response | null;
 }
 interface Inquiry {
   id: string; name: string; status: string; createdAt: string; sentAt?: string;
   variables: Record<string, string>;
-  template: { id: string; name: string };
+  template: { id: string; name: string; body: string };
   items: Item[];
 }
 
 const ITEM_STATUS: Record<string, { label: string; bg: string; color: string; icon: typeof CheckCircle2 }> = {
-  PENDING: { label: "待发送", bg: "rgba(148,163,184,0.15)", color: "#64748B", icon: Clock },
-  SENT:    { label: "已发送", bg: "rgba(37,99,235,0.10)",   color: "#2563EB", icon: Send },
-  FAILED:  { label: "发送失败", bg: "rgba(220,38,38,0.10)", color: "#DC2626", icon: XCircle },
-  REPLIED: { label: "已回复", bg: "rgba(22,163,74,0.10)",   color: "#16A34A", icon: CheckCircle2 },
+  PENDING: { label: "待发送",  bg: "rgba(148,163,184,0.15)", color: "#64748B", icon: Clock },
+  SENT:    { label: "已发送",  bg: "rgba(37,99,235,0.10)",   color: "#2563EB", icon: Send },
+  FAILED:  { label: "发送失败", bg: "rgba(220,38,38,0.10)",  color: "#DC2626", icon: XCircle },
+  REPLIED: { label: "已回复",  bg: "rgba(22,163,74,0.10)",   color: "#16A34A", icon: CheckCircle2 },
+  IGNORED: { label: "手动发送", bg: "rgba(217,119,6,0.10)",  color: "#D97706", icon: Clock },
 };
 
 const INQ_STATUS: Record<string, { label: string; bg: string; color: string; dot: string }> = {
@@ -41,9 +43,17 @@ function avatarColor(name: string) {
   return colors[Math.abs(h) % colors.length];
 }
 
-function ChannelIcon({ type }: { type: string }) {
-  if (type === "WHATSAPP") return <MessageSquare size={13} color="#25D366" />;
-  return <Mail size={13} color="#2563EB" />;
+const CHANNEL_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  EMAIL:    { label: "邮件",    color: "#2563EB", icon: <Mail size={13} color="#2563EB" /> },
+  WHATSAPP: { label: "WhatsApp", color: "#25D366", icon: <MessageSquare size={13} color="#25D366" /> },
+  ALI1688:  { label: "1688",    color: "#FF6600", icon: <ExternalLink size={13} color="#FF6600" /> },
+  FORM:     { label: "表单",    color: "#7C3AED", icon: <ExternalLink size={13} color="#7C3AED" /> },
+  SMS:      { label: "短信",    color: "#0EA5E9", icon: <MessageSquare size={13} color="#0EA5E9" /> },
+  WECHAT:   { label: "微信",    color: "#07C160", icon: <MessageSquare size={13} color="#07C160" /> },
+};
+
+function renderTemplate(body: string, vars: Record<string, string>): string {
+  return body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? `{{${k}}}`);
 }
 
 export default function InquiryDetailPage() {
@@ -194,8 +204,8 @@ export default function InquiryDetailPage() {
                   {/* Channel */}
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <ChannelIcon type={item.channel} />
-                      <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>{item.channel === "WHATSAPP" ? "WhatsApp" : "邮件"}</span>
+                      {CHANNEL_META[item.channel]?.icon ?? <Mail size={13} color="var(--text-muted)" />}
+                      <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>{CHANNEL_META[item.channel]?.label ?? item.channel}</span>
                     </div>
                   </td>
                   {/* Status */}
@@ -233,21 +243,52 @@ export default function InquiryDetailPage() {
                   </td>
                   {/* Actions */}
                   <td style={{ padding: "12px 16px" }}>
-                    {hasReply ? (
-                      <button onClick={() => setRecordItem(item)} style={{
-                        display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 10px",
-                        borderRadius: 6, border: "1px solid var(--border)", background: "transparent",
-                        color: "var(--text-secondary)", fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                      }}>编辑回复</button>
-                    ) : (
-                      <button onClick={() => setRecordItem(item)} style={{
-                        display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 10px",
-                        borderRadius: 6, border: "1px solid var(--accent)", background: "rgba(37,99,235,0.06)",
-                        color: "var(--accent)", fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                      }}>
-                        <Plus size={11} strokeWidth={2.5} />录入回复
-                      </button>
-                    )}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {/* Manual-channel helpers for ALI1688 / WECHAT / FORM */}
+                      {["ALI1688", "FORM"].includes(item.channel) && (() => {
+                        const ch = item.supplier.channels.find(c => c.type === item.channel);
+                        return (
+                          <>
+                            <button
+                              onClick={() => {
+                                const body = renderTemplate(inquiry.template.body, inquiry.variables);
+                                navigator.clipboard.writeText(body).then(() => alert("询盘内容已复制，请前往平台粘贴发送"));
+                              }}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                            >
+                              <Copy size={11} />复制询盘
+                            </button>
+                            {ch?.value && (
+                              <button
+                                onClick={() => window.open(ch.value, "_blank")}
+                                style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid #FF6600", background: "rgba(255,102,0,0.06)", color: "#FF6600", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                              >
+                                <ExternalLink size={11} />打开{CHANNEL_META[item.channel]?.label}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
+                      {item.channel === "WECHAT" && (
+                        <button
+                          onClick={() => {
+                            const body = renderTemplate(inquiry.template.body, inquiry.variables);
+                            navigator.clipboard.writeText(body).then(() => alert("询盘内容已复制，请在微信中粘贴发送"));
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid #07C160", background: "rgba(7,193,96,0.06)", color: "#07C160", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                        >
+                          <Copy size={11} />复制询盘
+                        </button>
+                      )}
+                      {/* Record / edit reply */}
+                      {hasReply ? (
+                        <button onClick={() => setRecordItem(item)} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>编辑回复</button>
+                      ) : (
+                        <button onClick={() => setRecordItem(item)} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid var(--accent)", background: "rgba(37,99,235,0.06)", color: "var(--accent)", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                          <Plus size={11} strokeWidth={2.5} />录入回复
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

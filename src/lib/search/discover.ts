@@ -34,6 +34,68 @@ function extractTags(name: string, desc: string): string[] {
   return tags.slice(0, 4);
 }
 
+// Bing China — accessible in mainland China without VPN
+async function searchBingCN(keyword: string): Promise<SupplierCandidate[]> {
+  const query = `${keyword} 工厂 批发 厂家`;
+  const res = await fetch(
+    `https://cn.bing.com/search?q=${encodeURIComponent(query)}&cc=CN&setlang=zh-hans&count=20`,
+    {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Accept-Encoding": "gzip, deflate",
+      },
+      signal: AbortSignal.timeout(6000),
+    }
+  );
+
+  const html = await res.text();
+  const candidates: SupplierCandidate[] = [];
+
+  // Bing result blocks: <li class="b_algo">…</li>
+  // Title + real URL: <h2><a href="REAL_URL">TITLE</a></h2>
+  // Snippet: first <p> inside block
+  const blockRx = /<li[^>]*class="[^"]*b_algo[^"]*"[^>]*>([\s\S]*?)<\/li>/g;
+  const titleRx = /<h2[^>]*>\s*<a[^>]*href="([^"#][^"]*)"[^>]*>([\s\S]*?)<\/a>/;
+  const snippetRx = /<p[^>]*class="[^"]*b_lineclamp[^"]*"[^>]*>([\s\S]*?)<\/p>|<p>([\s\S]*?)<\/p>/;
+
+  let block: RegExpExecArray | null;
+  while ((block = blockRx.exec(html)) !== null && candidates.length < 12) {
+    const blockHtml = block[1];
+    const tm = titleRx.exec(blockHtml);
+    if (!tm) continue;
+    const url = tm[1];
+    const name = decodeHtml(tm[2].replace(/<[^>]+>/g, "").trim());
+    if (!name || !url || url.includes("bing.com")) continue;
+
+    const sm = snippetRx.exec(blockHtml);
+    const rawSnip = sm ? (sm[1] ?? sm[2] ?? "") : "";
+    const description = decodeHtml(rawSnip.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+
+    const domain = extractDomain(url);
+    const email = extractEmails(description);
+    const tags = extractTags(name, description);
+
+    let source: SupplierCandidate["source"] = "web";
+    if (domain.includes("1688.com")) source = "1688";
+    else if (domain.includes("alibaba.com")) source = "alibaba";
+
+    candidates.push({
+      id: Buffer.from(url).toString("base64").slice(0, 12),
+      name: name.length > 40 ? name.slice(0, 40) + "…" : name,
+      website: url,
+      domain,
+      description: description.length > 120 ? description.slice(0, 120) + "…" : description,
+      tags,
+      email,
+      source,
+    });
+  }
+
+  return candidates;
+}
+
 // DuckDuckGo HTML search — no API key required
 async function searchDDG(keyword: string, region: string): Promise<SupplierCandidate[]> {
   const suffix = region === "CN" ? "工厂 批发 厂家" : "factory manufacturer wholesale";
@@ -138,9 +200,14 @@ async function searchSerpAPI(keyword: string, region: string): Promise<SupplierC
 
 export async function discoverSuppliers(keyword: string, region = "CN"): Promise<SupplierCandidate[]> {
   try {
-    // Prefer SerpAPI if key configured, else DuckDuckGo
     if (process.env.SERP_API_KEY) {
       return await searchSerpAPI(keyword, region);
+    }
+    if (region === "CN") {
+      // Bing China is accessible in mainland without VPN; DuckDuckGo is not
+      const results = await searchBingCN(keyword);
+      if (results.length > 0) return results;
+      // Fallback if Bing CN is unreachable (e.g. server outside China)
     }
     return await searchDDG(keyword, region);
   } catch (err) {
